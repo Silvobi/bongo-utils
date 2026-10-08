@@ -7,9 +7,7 @@ Kod tego moda został napisany przez AI — OpenAI Codex — na podstawie wymaga
 
 This mod's code was written by AI — OpenAI Codex — based on Bongo's requirements and guidance.
 
-**Bongo's server-side utility tool.**
-
-Wersja **1.3.0**. Mod wyłącznie serwerowy dla **Minecraft Java 26.3**, **Fabric Loader 0.19.5** i **Fabric API 0.161.0+26.3**. Wymaga **Java 25**. Klient może być vanilla — nie instaluje BongoUtils ani Fabric API.
+BongoUtils to Minecraft Fabric mod typu server-side - instalacja po stronie klienta nie jest wymagana.
 
 ## Instalacja
 
@@ -22,8 +20,10 @@ Wersja **1.3.0**. Mod wyłącznie serwerowy dla **Minecraft Java 26.3**, **Fabri
    enforce-secure-profile=false
    ```
 
+UWAGA! Przy ustawieniu `enforce-secure-profile=false` czat w grze może przestać działać poprawnie. Obejście tego problemu jest łatwe - zainstaluj modyfikację (No Chat Reports)[https://modrinth.com/mod/no-chat-reports]
+
 4. Uruchom serwer. Mod utworzy `config/bongoutils/`.
-5. W mieszanym trybie offline/premium możesz użyć whitelisty po nickach: najpierw `ign-whitelist add TWÓJ_NICK`, potem `ign-whitelist on`. Jest niezależna od UUID i po włączeniu zastępuje standardową kontrolę whitelisty. Domyślnie jest wyłączona — wtedy obowiązuje zwykła whitelista Minecrafta.
+5. W mieszanym trybie offline/premium możesz użyć whitelisty definujących po nickach, zamiast po UUID graczy: najpierw `/ign-whitelist add TWÓJ_NICK`, potem `/ign-whitelist on`. Jest niezależna od UUID i po włączeniu zastępuje standardową kontrolę whitelisty. Domyślnie jest wyłączona — wtedy obowiązuje zwykła whitelista Minecrafta.
 
 Mod sam wybiera uwierzytelnianie Mojang lub logowanie offline. Zalecane `online-mode=true` nie uniemożliwia połączeń offline przy włączonym `allowOffline`. `enforce-secure-profile=false` jest potrzebne, ponieważ konta offline nie mają podpisanych kluczy profilu.
 
@@ -33,7 +33,7 @@ Mod sam wybiera uwierzytelnianie Mojang lub logowanie offline. Zalecane `online-
 - Konto przedstawiające oficjalny UUID przechodzi standardową weryfikację **sesji Mojang**. Dopiero udana weryfikacja daje wejście bez hasła.
 - UUID premium bez prawidłowej sesji zostaje odrzucony. Nie ma awaryjnego przełączenia takiego połączenia na dostęp offline.
 - Połączenie offline z nickiem niezajętym przez konto MSA otrzymuje szyfrowanie, a potem natywny dialog w fazie konfiguracji, **przed wejściem do świata**.
-- Pierwszy raz: `Hasło` i `Powtórz hasło`. Następne połączenie: `Podaj hasło`. Hasło ma 8–128 znaków.
+- Pierwszy raz: `Hasło` i `Powtórz hasło`. Następne połączenie: `Podaj hasło`. Hasło ma 8–128 znaków. PAMIĘTAJ! Minecraft nie wspiera cenzurowania wpisywanych znaków w tych oknach, hasło, które zaczniesz wpisywać będzie widoczne.
 - Klient nie otrzymuje dostępu do świata, ekwipunku ani komend przed udanym logowaniem. Zamknięcie formularza nie omija tej blokady. Czas na logowanie: 120 sekund.
 - Hasła trafiają przez pakiet formularza, bez komend czatu. Na dysku jest wyłącznie PBKDF2-HMAC-SHA256 (600 000 iteracji, losowa sól 16 bajtów).
 - Limit: 5 nieudanych prób na połączenie, 10 przesłań poprawnie zbudowanego formularza na konto w ciągu 5 minut oraz 20 połączeń z IP na minutę. Limity w pamięci przeżywają ponowne połączenie, ale restart serwera je zeruje.
