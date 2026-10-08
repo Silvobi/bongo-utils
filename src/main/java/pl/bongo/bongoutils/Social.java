@@ -144,7 +144,8 @@ public final class Social {
             display = Component.literal(masked ? polish(viewer) ? "Ignorowany" : "Ignored"
                     : entry.profile() != null ? entry.profile().name() : state.name(entry.profileId()))
                     .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC);
-            game = GameType.SPECTATOR; latency = -1;
+            // PlayerInfo gameMode also affects client-side entity rendering. Style only the TAB component.
+            latency = -1;
         }
         return new ClientboundPlayerInfoUpdatePacket.Entry(entry.profileId(), entry.profile(), !hidden(entry.profileId()) && entry.listed(), latency,
                 game, display, entry.showHat(), entry.listOrder(), entry.chatSession());
