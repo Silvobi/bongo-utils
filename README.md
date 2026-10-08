@@ -44,7 +44,7 @@ bongoutils visibility <nick> vanish
 
 ### Migracja danych kont
 
-Komendy działają z konsoli lub konta z **OP poziomu 4**. Oba konta muszą być offline, także po zakończeniu sprawdzania tożsamości:
+Komendy działają z konsoli lub konta z **OP poziomu 4**. Oba konta muszą być offline, także po zakończeniu sprawdzania tożsamości. Oczekujące połączenia w fazie logowania lub konfiguracji również blokują migrację:
 
 ```text
 /bongoutils migrate move StaryNick NowyNick

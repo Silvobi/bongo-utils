@@ -56,6 +56,18 @@ public final class MigrationCommand {
             if (server.getPlayerList().getPlayer(from) != null || server.getPlayerList().getPlayer(to) != null
                     || server.getPlayerList().getPlayerByName(fromName) != null || server.getPlayerList().getPlayerByName(toName) != null)
                 throw new IllegalArgumentException("Obaj gracze muszą być offline podczas migracji.");
+            // An authenticated configuration-stage connection can still join on the next tick.
+            // Refuse before changing credentials or saves, rather than racing its already-accepted password.
+            for(var connection:List.copyOf(server.getConnection().getConnections())) {
+                if(!connection.isConnected())continue;
+                var listener=connection.getPacketListener();String name=null;
+                if(listener instanceof net.minecraft.server.network.ServerLoginPacketListenerImpl)
+                    name=((pl.bongo.bongoutils.mixin.LoginIdentityAccess)listener).bongo$requestedName();
+                else if(listener instanceof net.minecraft.server.network.ServerConfigurationPacketListenerImpl configuration)
+                    name=configuration.getOwner().name();
+                if(name!=null && (name.equalsIgnoreCase(fromName)||name.equalsIgnoreCase(toName)))
+                    throw new IllegalArgumentException("Jedno z kont jest w trakcie logowania lub konfiguracji. Rozłącz je przed migracją.");
+            }
             Path world = server.getWorldPath(LevelResource.ROOT), root = BongoUtils.store.root();
             Path playerFrom = server.getWorldPath(LevelResource.PLAYER_DATA_DIR).resolve(from + ".dat");
             Path playerTo = server.getWorldPath(LevelResource.PLAYER_DATA_DIR).resolve(to + ".dat");

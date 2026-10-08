@@ -29,7 +29,8 @@
     "ClanChatMixin",
     "VanishLivingMixin",
     "VanishPickableMixin",
-    "VanishGameEventMixin"
+    "VanishGameEventMixin",
+    "LoginIdentityAccess"
   ],
   "injectors": {
     "defaultRequire": 1
