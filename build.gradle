@@ -1,0 +1,50 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version '1.17.12'
+    id 'maven-publish'
+}
+version = project.mod_version
+group = project.maven_group
+base { archivesName = project.archives_base_name }
+repositories { mavenCentral() }
+dependencies {
+    minecraft 'com.mojang:minecraft:26.3'
+    implementation 'net.fabricmc:fabric-loader:0.19.5'
+    implementation 'net.fabricmc.fabric-api:fabric-api:0.161.0+26.3'
+    testImplementation platform('org.junit:junit-bom:5.13.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+loom { accessWidenerPath = file('src/main/resources/bongoutils.accesswidener') }
+java { toolchain.languageVersion = JavaLanguageVersion.of(25); withSourcesJar() }
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 25 }
+processResources { inputs.property 'version', project.version; filesMatching('fabric.mod.json') { expand version: project.version } }
+test { useJUnitPlatform() }
+tasks.named('jar') { from('LICENSE') }
+tasks.register('integrationTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'pl.bongo.bongoutils.IntegrationHarness'
+    args(project.findProperty('testPort') ?: '25579')
+}
+tasks.register('whitelistIntegrationTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'pl.bongo.bongoutils.WhitelistIntegrationHarness'
+    args(project.findProperty('testPort') ?: '25579', project.findProperty('testRconPort') ?: '25580',
+            project.findProperty('testRconPassword') ?: 'bongo-local-test')
+}
+
+tasks.register('msaIntegrationTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'pl.bongo.bongoutils.MsaIntegrationHarness'
+    args(project.findProperty('testPort') ?: '25579', project.findProperty('testPremiumFile') ?: 'premium-test.json')
+}
+
+tasks.register('changePassIntegrationTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'pl.bongo.bongoutils.ChangePassIntegrationHarness'
+    args(project.findProperty('testPort') ?: '25579', project.findProperty('testRconPort') ?: '25580',
+            project.findProperty('testRconPassword') ?: 'bongo-local-test')
+}
