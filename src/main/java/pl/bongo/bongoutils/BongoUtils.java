@@ -45,20 +45,20 @@ public final class BongoUtils implements ModInitializer {
                         String nick = StringArgumentType.getString(context, "nick");
                         try {
                             store.reset(nick);
-                            context.getSource().sendSuccess(() -> Component.literal("Usunięto hasło konta offline: " + nick + ". Kolejne połączenie poprosi o rejestrację."), false);
+                            context.getSource().sendSuccess(() -> Component.literal(Lang.text(context.getSource(),"reset_done", nick)), false);
                             return 1;
-                        } catch (Exception e) { context.getSource().sendFailure(Component.literal("Nie udało się usunąć hasła.")); return 0; }
+                        } catch (Exception e) { context.getSource().sendFailure(Component.literal(Lang.text(context.getSource(),"reset_failed"))); return 0; }
                     }))));
         });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ConnectionState state = (ConnectionState) ((ListenerConnection) handler).bongo$connection();
             try {
                 var profile = handler.player.getGameProfile();
-                Component welcome = MsaLogin.registerJoined(store, profile.name(), profile.id(), state.bongo$verified());
+                Component welcome = MsaLogin.registerJoined(store, profile.name(), profile.id(), state.bongo$verified(), Lang.locale(handler.player));
                 if (welcome != null) handler.player.sendSystemMessage(welcome);
             } catch (java.io.IOException e) {
                 LOG.error("Cannot persist verified MSA registration", e);
-                handler.disconnect(Component.literal("Błąd danych BongoUtils. Skontaktuj się z administratorem."));
+                handler.disconnect(Component.literal(Lang.text(handler.player,"data_error")));
             }
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {

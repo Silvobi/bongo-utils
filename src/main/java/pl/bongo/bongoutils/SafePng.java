@@ -13,12 +13,12 @@ public final class SafePng {
     public static byte[] download(String url) throws IOException {
         long deadline = System.nanoTime() + 30_000_000_000L;
         URI uri;
-        try { uri = URI.create(url); } catch (IllegalArgumentException e) { throw new IOException("Nieprawidłowy URL."); }
+        try { uri = URI.create(url); } catch (IllegalArgumentException e) { throw new Lang.Failure("url_invalid"); }
         for (int redirects = 0; redirects <= 4; redirects++) {
             validateUri(uri);
             InetAddress[] addresses = InetAddress.getAllByName(uri.getHost());
-            if (addresses.length == 0) throw new IOException("Brak adresu serwera obrazu.");
-            for (InetAddress address : addresses) if (!publicAddress(address)) throw new IOException("URL wskazuje na niedozwoloną sieć.");
+            if (addresses.length == 0) throw new Lang.Failure("image_no_address");
+            for (InetAddress address : addresses) if (!publicAddress(address)) throw new Lang.Failure("image_private");
             try (Socket socket = new Socket()) {
                 socket.connect(new InetSocketAddress(addresses[0], 443), 8000);
                 socket.setSoTimeout(10000);
@@ -35,7 +35,7 @@ public final class SafePng {
                     InputStream input = new BufferedInputStream(new FilterInputStream(tls.getInputStream()) {
                         private void deadline() throws IOException {
                             long remaining = (deadline - System.nanoTime()) / 1_000_000;
-                            if (remaining <= 0) throw new IOException("Pobieranie PNG przekroczyło 30 sekund.");
+                            if (remaining <= 0) throw new Lang.Failure("image_timeout");
                             tls.setSoTimeout((int) Math.min(10000, Math.max(1, remaining)));
                         }
                         public int read() throws IOException { deadline(); return in.read(); }
@@ -43,43 +43,43 @@ public final class SafePng {
                     });
                     String statusLine = line(input);
                     String[] parts = statusLine.split(" ");
-                    if (parts.length < 2 || !parts[0].startsWith("HTTP/1.")) throw new IOException("Nieprawidłowa odpowiedź HTTP.");
+                    if (parts.length < 2 || !parts[0].startsWith("HTTP/1.")) throw new Lang.Failure("http_invalid");
                     int status = Integer.parseInt(parts[1]);
                     Map<String, String> headers = new HashMap<>();
                     int size = 0;
                     while (true) {
                         String header = line(input); size += header.length();
-                        if (size > 32768) throw new IOException("Zbyt duże nagłówki HTTP.");
+                        if (size > 32768) throw new Lang.Failure("http_headers_large");
                         if (header.isEmpty()) break;
                         int colon = header.indexOf(':');
                         if (colon > 0) headers.put(header.substring(0, colon).toLowerCase(Locale.ROOT), header.substring(colon + 1).strip());
                     }
                     if (Set.of(301, 302, 303, 307, 308).contains(status)) {
-                        if (redirects == 4 || !headers.containsKey("location")) throw new IOException("Zbyt wiele przekierowań.");
+                        if (redirects == 4 || !headers.containsKey("location")) throw new Lang.Failure("http_redirects");
                         uri = uri.resolve(headers.get("location")); continue;
                     }
-                    if (status != 200) throw new IOException("Serwer obrazu zwrócił HTTP " + status + ". Link mógł wygasnąć.");
-                    if (!headers.getOrDefault("content-encoding", "identity").equalsIgnoreCase("identity")) throw new IOException("Niedozwolona kompresja HTTP.");
+                    if (status != 200) throw new Lang.Failure("image_http", status);
+                    if (!headers.getOrDefault("content-encoding", "identity").equalsIgnoreCase("identity")) throw new Lang.Failure("http_compression");
                     String transfer = headers.getOrDefault("transfer-encoding", "");
                     byte[] bytes;
                     if (transfer.equalsIgnoreCase("chunked")) bytes = chunks(input);
-                    else if (!transfer.isEmpty()) throw new IOException("Nieobsługiwany transfer HTTP.");
+                    else if (!transfer.isEmpty()) throw new Lang.Failure("http_transfer");
                     else if (headers.containsKey("content-length")) {
                         long length = Long.parseLong(headers.get("content-length"));
-                        if (length < 0 || length > MAX_BYTES) throw new IOException("PNG może mieć maksymalnie 1 MiB.");
+                        if (length < 0 || length > MAX_BYTES) throw new Lang.Failure("png_size");
                         bytes = input.readNBytes((int) length);
-                        if (bytes.length != length) throw new IOException("Niepełny obraz PNG.");
+                        if (bytes.length != length) throw new Lang.Failure("png_incomplete");
                     } else bytes = input.readNBytes(MAX_BYTES + 1);
                     validatePng(bytes); return bytes;
                 }
-            } catch (IllegalArgumentException e) { throw new IOException("Nieprawidłowy URL lub odpowiedź HTTP."); }
+            } catch (IllegalArgumentException e) { throw new Lang.Failure("url_http_invalid"); }
         }
-        throw new IOException("Nie udało się pobrać PNG.");
+        throw new Lang.Failure("png_download_failed");
     }
     public static void validateUri(URI uri) throws IOException {
         if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null || uri.getUserInfo() != null
                 || (uri.getPort() != -1 && uri.getPort() != 443) || uri.toASCIIString().length() > 2048)
-            throw new IOException("Podaj bezpośredni adres HTTPS obrazu PNG (port 443).");
+            throw new Lang.Failure("url_https");
         // Extensions are intentionally ignored: Discord uses signed query strings and proxy paths.
     }
     public static boolean publicAddress(InetAddress address) {
@@ -99,27 +99,27 @@ public final class SafePng {
     }
     public static void validatePng(byte[] bytes) throws IOException {
         byte[] magic = {(byte) 137, 80, 78, 71, 13, 10, 26, 10};
-        if (bytes.length > MAX_BYTES || bytes.length < 24 || !Arrays.equals(magic, Arrays.copyOf(bytes, 8))) throw new IOException("Plik nie jest obrazem PNG (maks. 1 MiB).");
+        if (bytes.length > MAX_BYTES || bytes.length < 24 || !Arrays.equals(magic, Arrays.copyOf(bytes, 8))) throw new Lang.Failure("png_invalid");
         try (var imageInput = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
             var readers = ImageIO.getImageReaders(imageInput);
-            if (!readers.hasNext()) throw new IOException("Uszkodzony PNG.");
+            if (!readers.hasNext()) throw new Lang.Failure("png_corrupt");
             var reader = readers.next();
             try {
                 reader.setInput(imageInput);
                 int width = reader.getWidth(0), height = reader.getHeight(0);
-                if (width != 64 || (height != 64 && height != 32)) throw new IOException("Skin musi mieć rozmiar 64×64 lub 64×32 piksele.");
-                if (reader.read(0) == null) throw new IOException("Uszkodzony PNG.");
+                if (width != 64 || (height != 64 && height != 32)) throw new Lang.Failure("skin_dimensions");
+                if (reader.read(0) == null) throw new Lang.Failure("png_corrupt");
             } finally { reader.dispose(); }
         }
     }
     private static String line(InputStream input) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         while (out.size() <= 8192) {
-            int b = input.read(); if (b < 0) throw new EOFException("Niepełna odpowiedź HTTP.");
+            int b = input.read(); if (b < 0) throw new Lang.Failure("http_incomplete");
             if (b == '\n') return out.toString(StandardCharsets.US_ASCII).replaceAll("\r$", "");
             out.write(b);
         }
-        throw new IOException("Zbyt długa linia HTTP.");
+        throw new Lang.Failure("http_line_long");
     }
     private static byte[] chunks(InputStream input) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -127,12 +127,12 @@ public final class SafePng {
             String size = line(input).split(";", 2)[0].strip();
             int length = Integer.parseInt(size, 16);
             if (length == 0) return out.toByteArray();
-            if (length < 0 || length > MAX_BYTES - out.size()) throw new IOException("PNG może mieć maksymalnie 1 MiB.");
+            if (length < 0 || length > MAX_BYTES - out.size()) throw new Lang.Failure("png_size");
             byte[] chunk = input.readNBytes(length);
-            if (chunk.length != length) throw new EOFException("Niepełny obraz PNG.");
+            if (chunk.length != length) throw new Lang.Failure("png_incomplete");
             out.write(chunk);
-            if (!line(input).isEmpty()) throw new IOException("Nieprawidłowe kodowanie HTTP.");
+            if (!line(input).isEmpty()) throw new Lang.Failure("http_encoding");
         }
-        throw new IOException("Zbyt wiele fragmentów HTTP.");
+        throw new Lang.Failure("http_chunks");
     }
 }
