@@ -12,7 +12,7 @@ BongoUtils to Minecraft Fabric mod typu server-side - instalacja po stronie klie
 ## Instalacja
 
 1. Zatrzymaj serwer i wykonaj kopię świata oraz danych graczy.
-2. Umieść `BongoUtils-1.3.0.jar` i `fabric-api-0.161.0+26.3.jar` w katalogu `mods/` serwera Fabric 26.3. Przy aktualizacji usuń stary JAR BongoUtils; nie zostawiaj dwóch wersji moda. Zachowaj katalog `config/bongoutils/`.
+2. Umieść `BongoUtils-1.3.1.jar` i `fabric-api-0.161.0+26.3.jar` w katalogu `mods/` serwera Fabric 26.3. Przy aktualizacji usuń stary JAR BongoUtils; nie zostawiaj dwóch wersji moda. Zachowaj katalog `config/bongoutils/`.
 3. W `server.properties` ustaw:
 
    ```properties
@@ -191,7 +191,7 @@ Z Java 25:
 .\gradlew.bat build
 ```
 
-Na Linuxie: `bash gradlew build`. Wynik: `build/libs/BongoUtils-1.3.0.jar`. Plik `-sources.jar` jest archiwum kodu, nie modem do instalacji. Loom 1.17.12 i Gradle 9.6.0 są przypięte w projekcie. Minecraft 26.3 używa oficjalnych nazw klas i nie wymaga Yarn.
+Na Linuxie: `bash gradlew build`. Wynik: `build/libs/BongoUtils-1.3.1.jar`. Plik `-sources.jar` jest archiwum kodu, nie modem do instalacji. Loom 1.17.12 i Gradle 9.6.0 są przypięte w projekcie. Minecraft 26.3 używa oficjalnych nazw klas i nie wymaga Yarn.
 
 `build` uruchamia 22 testy dotyczące haseł, trwałości danych, normalizacji nicków, URL Discorda, sieci prywatnych, PNG, limitów, whitelisty IGN, pierwszeństwa MSA oraz zmiany i wyczyszczenia hasła. Sprawdzane są trwałość zmian po restarcie, odrzucenie starego hasła, brak nadpisania nowszego zapisu przez stary formularz, ochrona MSA, uszkodzony plik konta i rejestracja po wyczyszczeniu. Testy whitelisty obejmują duplikaty z różną wielkością liter i odrzucenie błędnego pliku bez utraty poprzedniej listy.
 
@@ -236,3 +236,9 @@ To jawna imitacja istniejącego zapisu, a nie uwierzytelnienie konta MSA. Nastę
 Test używa rzeczywistych odpowiedzi Mojang. Prawidłowe wejście kontem MSA wraz z chatem wymaga dodatkowo zalogowanego gracza; test automatyczny nie posiada jego tokenu sesji i nie omija weryfikacji.
 
 Źródła API: [Fabric 26.3](https://www.fabricmc.net/2026/09/15/263.html), [natywne dialogi Minecrafta](https://www.minecraft.net/en-us/article/minecraft-java-edition-1-21-6), [kolejka MineSkin](https://docs.mineskin.org/docs/mineskin-api/queue-skin-generation/).
+
+## Język komunikatów
+
+Formularze rejestracji, logowania, zmiany skina i hasła, komunikaty oraz błędy są po polsku dla klientów `pl_*`, a dla pozostałych po angielsku. Język jest pobierany od odbiorcy podczas wyświetlania. Błędy przed fazą konfiguracji (np. zajęty IGN konta MSA) i komunikaty konsoli są po angielsku: na tym etapie klient nie podał jeszcze języka. Wbudowane komunikaty Minecrafta zachowują tłumaczenia klienta. Katalogi tłumaczeń znajdują się w `src/main/resources/bongoutils/lang/`.
+
+`gradlew.bat languageTest -PtestPort=25579 -PtestRconPort=25580 -PtestRconPassword=bongo-local-test` sprawdza formularze przed wejściem do świata, menu skina oraz język powiadomień innych administratorów na działającym, odizolowanym serwerze z tym modem i włączonym RCON, dla klientów polskich, angielskich i niemieckich. Powiadomienia administratorów zachowują zasady vanilla i regułę `send_command_feedback`.

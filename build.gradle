@@ -26,6 +26,14 @@ tasks.register('integrationTest', JavaExec) {
     mainClass = 'pl.bongo.bongoutils.IntegrationHarness'
     args(project.findProperty('testPort') ?: '25579')
 }
+
+tasks.register('languageTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'pl.bongo.bongoutils.LanguageHarness'
+    args(project.findProperty('testPort') ?: '25579', project.findProperty('testRconPort') ?: '25580',
+            project.findProperty('testRconPassword') ?: 'bongo-local-test')
+}
 tasks.register('whitelistIntegrationTest', JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath
