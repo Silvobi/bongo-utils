@@ -27,21 +27,25 @@ public final class BongoUtils implements ModInitializer {
         try {
             Path root = FabricLoader.getInstance().getConfigDir().resolve("bongoutils");
             Files.createDirectories(root);
+            FileTransaction.recover(root.resolve("migration-backups"));
             Path file = root.resolve("config.json");
             config = Files.exists(file) ? Store.JSON.fromJson(Files.readString(file), Config.class) : new Config();
             if (config == null || config.mineSkinApiKey == null) throw new IllegalArgumentException("Invalid config.json");
             if (!Files.exists(file)) Store.atomic(file, Store.JSON.toJson(config));
             store = new Store(root); skins = new SkinService(); skinUi = new SkinUi(); changePassUi = new ChangePassUi();
             ignWhitelist = new IgnWhitelist(root.resolve("ign-whitelist.json"));
+            Social.state = new SocialState(root.resolve("social.json"));
             workers = pool(4, 32, "BongoUtils-auth"); skinWorkers = pool(2, 16, "BongoUtils-skin");
         } catch (Exception e) { throw new IllegalStateException("BongoUtils cannot read its configuration or storage", e); }
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
             IgnWhitelistCommand.register(dispatcher);
+            Social.register(dispatcher);
+            MigrationCommand.register(dispatcher);
             dispatcher.register(Commands.literal("skin").executes(context -> skinUi.open(context.getSource().getPlayerOrException())));
             dispatcher.register(Commands.literal("changepass").requires(ChangePassUi::allowed)
                     .executes(context -> changePassUi.open(context.getSource().getPlayerOrException())));
-            dispatcher.register(Commands.literal("bongoutils").requires(source -> source.getEntity() == null)
-                    .then(Commands.literal("resetpassword").then(Commands.argument("nick", StringArgumentType.word()).executes(context -> {
+            dispatcher.register(Commands.literal("bongoutils").requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                    .then(Commands.literal("resetpassword").requires(source -> source.getEntity() == null).then(Commands.argument("nick", StringArgumentType.word()).executes(context -> {
                         String nick = StringArgumentType.getString(context, "nick");
                         try {
                             store.reset(nick);
@@ -51,6 +55,10 @@ public final class BongoUtils implements ModInitializer {
                     }))));
         });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            Social.server = server;
+            try { Social.state.remember(handler.player.getUUID(), handler.player.getGameProfile().name()); }
+            catch (java.io.IOException e) { LOG.error("Cannot remember player for social tools", e); }
+            Social.refresh();
             ConnectionState state = (ConnectionState) ((ListenerConnection) handler).bongo$connection();
             try {
                 var profile = handler.player.getGameProfile();
@@ -64,7 +72,8 @@ public final class BongoUtils implements ModInitializer {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             skinUi.disconnected(handler.player.getUUID()); changePassUi.disconnected(handler.player.getUUID());
         });
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> { workers.shutdownNow(); skinWorkers.shutdownNow(); });
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> Social.server = server);
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> { workers.shutdownNow(); skinWorkers.shutdownNow(); Social.server = null; });
         LOG.info("BongoUtils: server-only authentication dialogs and skins enabled.");
     }
     private static ThreadPoolExecutor pool(int count, int queue, String prefix) {

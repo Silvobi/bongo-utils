@@ -29,6 +29,8 @@ public final class Store {
         return name.toLowerCase(Locale.ROOT);
     }
     public synchronized boolean reserved(String name) { return premium.containsKey(key(name)); }
+    public synchronized UUID premiumId(String name) { return premium.get(key(name)); }
+    public Path root() { return root; }
     public synchronized boolean reserve(String name, UUID uuid) throws IOException {
         String key = key(name);
         if (uuid.equals(premium.get(key))) return false;
@@ -81,6 +83,7 @@ public final class Store {
         Path temp = Files.createTempFile(file.getParent(), ".bongo-", ".tmp");
         try {
             Files.writeString(temp, contents, StandardCharsets.UTF_8);
+            try(var channel=java.nio.channels.FileChannel.open(temp,StandardOpenOption.WRITE)){channel.force(true);}
             try { Files.move(temp, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING); }
             catch (AtomicMoveNotSupportedException e) { Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING); }
         } finally { Files.deleteIfExists(temp); }
