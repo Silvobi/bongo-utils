@@ -13,9 +13,9 @@ public final class SkinUi {
     private final Set<UUID> busy = new HashSet<>();
     public int open(ServerPlayer player) {
         cooldowns.entrySet().removeIf(entry -> entry.getValue() < System.currentTimeMillis());
-        if (busy.contains(player.getUUID())) { player.sendSystemMessage(Component.literal("Twój skin jest nadal przetwarzany.")); return 0; }
+        if (busy.contains(player.getUUID())) { player.sendSystemMessage(Component.literal(Lang.text(player,"skin_busy"))); return 0; }
         Session session = session(player, "menu");
-        player.openDialog(Dialogs.skinMenu(session.token)); return 1;
+        player.openDialog(Dialogs.skinMenu(Lang.locale(player), session.token)); return 1;
     }
     private Session session(ServerPlayer player, String screen) {
         Session session = new Session(UUID.randomUUID().toString(), screen, System.nanoTime() + 300_000_000_000L);
@@ -32,16 +32,16 @@ public final class SkinUi {
                 if (!session.screen.equals("menu")) return;
                 boolean url = action[0].equals("skin_url");
                 Session next = session(player, url ? "url" : "ign");
-                player.openDialog(Dialogs.skinForm(url, next.token, url ? "PNG zostanie zapisany na serwerze i przesłany do MineSkin w celu podpisania." : "Podaj nick konta Minecraft, którego skin chcesz skopiować."));
+                player.openDialog(Dialogs.skinForm(Lang.locale(player), url, next.token, url ? Lang.text(player,"skin_url_intro") : Lang.text(player,"skin_ign_intro")));
             }
             case "skin_save_ign", "skin_save_url" -> {
                 boolean url = action[0].equals("skin_save_url");
                 if (!session.screen.equals(url ? "url" : "ign")) return;
                 if (!(packet.payload().orElse(null) instanceof CompoundTag fields)) return;
                 String source = fields.getString("source").orElse("").strip();
-                if (source.isEmpty() || source.length() > (url ? 2048 : 16)) { error(player, url, "Podaj poprawne źródło skina."); return; }
+                if (source.isEmpty() || source.length() > (url ? 2048 : 16)) { error(player, url, Lang.text(player,"skin_source_invalid")); return; }
                 long now = System.currentTimeMillis();
-                if (now < cooldowns.getOrDefault(player.getUUID(), 0L)) { error(player, url, "Skin możesz zmienić co 30 sekund."); return; }
+                if (now < cooldowns.getOrDefault(player.getUUID(), 0L)) { error(player, url, Lang.text(player,"skin_cooldown")); return; }
                 busy.add(player.getUUID()); sessions.remove(player.getUUID());
                 boolean slim = fields.getString("slim").orElse("false").equals("true");
                 var server = Objects.requireNonNull(player.level().getServer());
@@ -54,7 +54,7 @@ public final class SkinUi {
                             if (server.getPlayerList().getPlayer(player.getUUID()) != player || !player.connection.isAcceptingMessages()) return;
                             ((PlayerProfileMixin) player).bongo$profile(SkinService.apply(player.getGameProfile(), skin));
                             player.connection.send(ClientboundClearDialogPacket.INSTANCE);
-                            player.sendSystemMessage(Component.literal("Skin zapisany. Odświeżanie wyglądu…"));
+                            player.sendSystemMessage(Component.literal(Lang.text(player,"skin_saved")));
                             ((ConnectionState) ((ListenerConnection) player.connection).bongo$connection()).bongo$skinRefresh(true);
                             player.connection.switchToConfig();
                         });
@@ -62,18 +62,18 @@ public final class SkinUi {
                         server.execute(() -> {
                             busy.remove(player.getUUID());
                             if (server.getPlayerList().getPlayer(player.getUUID()) == player && player.connection.isAcceptingMessages())
-                                error(player, url, e instanceof java.io.IOException ? e.getMessage() : "Nie udało się ustawić skina. Spróbuj ponownie.");
+                                error(player, url, Lang.error(player, e));
                         });
                     }
-                })) { busy.remove(player.getUUID()); error(player, url, "Kolejka skinów jest pełna. Spróbuj później."); return; }
+                })) { busy.remove(player.getUUID()); error(player, url, Lang.text(player,"skin_queue_full")); return; }
                 player.connection.send(ClientboundClearDialogPacket.INSTANCE);
-                player.sendSystemMessage(Component.literal("Przetwarzanie skina…"));
+                player.sendSystemMessage(Component.literal(Lang.text(player,"skin_processing")));
             }
         }
     }
     private void error(ServerPlayer player, boolean url, String message) {
         Session next = session(player, url ? "url" : "ign");
-        player.openDialog(Dialogs.skinForm(url, next.token, message));
+        player.openDialog(Dialogs.skinForm(Lang.locale(player), url, next.token, message));
     }
     public void disconnected(UUID uuid) { sessions.remove(uuid); }
     private record Session(String token, String screen, long expiry) {}

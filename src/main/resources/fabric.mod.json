@@ -10,5 +10,6 @@
   "entrypoints": { "main": ["pl.bongo.bongoutils.BongoUtils"] },
   "mixins": ["bongoutils.mixins.json"],
   "accessWidener": "bongoutils.accesswidener",
-  "depends": { "fabricloader": ">=0.19.5", "minecraft": "26.3", "java": ">=25", "fabric-api": ">=0.161.0+26.3" }
+  "depends": { "fabricloader": ">=0.19.5", "minecraft": "26.3", "java": ">=25", "fabric-api": ">=0.161.0+26.3" },
+  "breaks": { "bongos_teleports": "<1.4.0" }
 }

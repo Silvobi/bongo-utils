@@ -16,22 +16,24 @@ public final class MsaLogin {
         return allowOffline ? Route.OFFLINE : Route.OFFLINE_DISABLED;
     }
     public static String rejection(Route route, String name) {
+        return rejection(null, route, name);
+    }
+    public static String rejection(String locale, Route route, String name) {
         return switch (route) {
-            case RESERVED_MSA -> "Połączenie odrzucone! (czy łączysz się w trybie OFFLINE?)\n"
-                    + "IGN, z którego korzystasz jest zarejestrowane jako \"Konto MSA\".\n"
-                    + "Zaloguj się do swojego konta MSA i spróbuj ponownie lub użyj innego IGN.";
-            case OCCUPIED_MSA -> "IGN " + name + " jest już zajęty przez inne konto MSA!\n"
-                    + "Zmień IGN (in-game nickname) aby móc połączyć się w trybie OFFLINE, lub zaloguj się do swojego konta MSA.";
-            case OFFLINE_DISABLED -> "Ten nick wymaga zalogowanego konta Minecraft.";
+            case RESERVED_MSA -> Lang.text(locale, "msa_reserved");
+            case OCCUPIED_MSA -> Lang.text(locale, "msa_occupied", name);
+            case OFFLINE_DISABLED -> Lang.text(locale, "msa_required");
             default -> throw new IllegalArgumentException("This route does not reject a connection");
         };
     }
-    public static Component welcome() {
-        return Component.literal("Połączono z konta MSA. Gracz został zarejestrowany automatycznie")
-                .withStyle(ChatFormatting.GREEN);
+    public static Component welcome(String locale) {
+        return Component.literal(Lang.text(locale, "msa_welcome")).withStyle(ChatFormatting.GREEN);
     }
     public static Component registerJoined(Store store, String name, UUID uuid, boolean verified) throws IOException {
+        return registerJoined(store, name, uuid, verified, null);
+    }
+    public static Component registerJoined(Store store, String name, UUID uuid, boolean verified, String locale) throws IOException {
         if (!verified || !store.reserve(name, uuid)) return null;
-        return welcome();
+        return welcome(locale);
     }
 }

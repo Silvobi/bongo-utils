@@ -41,7 +41,7 @@ public final class SkinService {
     public Store.SkinRecord fromIgn(String ign) throws Exception {
         Store.key(ign);
         UUID uuid = lookupUuid(ign);
-        if (uuid == null) throw new IOException("Nie znaleziono konta Minecraft o tym nicku.");
+        if (uuid == null) throw new Lang.Failure("skin_not_found");
         JsonObject profile = get("https://sessionserver.mojang.com/session/minecraft/profile/" + uuid.toString().replace("-", "") + "?unsigned=false");
         for (JsonElement element : profile.getAsJsonArray("properties")) {
             JsonObject property = element.getAsJsonObject();
@@ -49,10 +49,10 @@ public final class SkinService {
                 return checked(new Store.SkinRecord("ign:" + ign, property.get("value").getAsString(), property.get("signature").getAsString(), null));
             }
         }
-        throw new IOException("To konto nie ma podpisanego skina.");
+        throw new Lang.Failure("skin_unsigned");
     }
     public synchronized Store.SkinRecord fromUrl(String url, boolean slim) throws Exception {
-        if (System.currentTimeMillis() < nextMineSkin) throw new IOException("Limit MineSkin. Spróbuj za chwilę.");
+        if (System.currentTimeMillis() < nextMineSkin) throw new Lang.Failure("mineskin_limit");
         byte[] png = SafePng.download(url);
         String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(png));
         Path image = BongoUtils.store.image(hash);
@@ -75,11 +75,11 @@ public final class SkinService {
         JsonObject data = send(builder.build());
         long deadline = System.nanoTime() + 90_000_000_000L;
         while (!data.has("skin") || !data.get("skin").isJsonObject() || !data.getAsJsonObject("skin").has("texture")) {
-            if (System.nanoTime() > deadline) throw new IOException("MineSkin nie zakończył podpisywania w 90 sekund. Spróbuj ponownie.");
+            if (System.nanoTime() > deadline) throw new Lang.Failure("mineskin_timeout");
             if (data.has("job")) {
                 JsonObject job = data.getAsJsonObject("job");
                 String status = job.has("status") ? job.get("status").getAsString() : "";
-                if (status.equals("failed")) throw new IOException("MineSkin odrzucił obraz skina.");
+                if (status.equals("failed")) throw new Lang.Failure("mineskin_rejected");
                 if (status.equals("completed") && job.has("result")) {
                     data = getMineSkin("https://api.mineskin.org/v2/skins/" + safeId(job.get("result").getAsString()));
                     continue;
@@ -87,7 +87,7 @@ public final class SkinService {
                 String id = safeId(job.get("id").getAsString());
                 Thread.sleep(2000);
                 data = getMineSkin("https://api.mineskin.org/v2/queue/" + id);
-            } else throw new IOException("Nieznana odpowiedź MineSkin.");
+            } else throw new Lang.Failure("mineskin_response");
         }
         JsonObject texture = data.getAsJsonObject("skin").getAsJsonObject("texture").getAsJsonObject("data");
         Store.SkinRecord result = checked(new Store.SkinRecord("url", texture.get("value").getAsString(), texture.get("signature").getAsString(), hash));
@@ -108,16 +108,16 @@ public final class SkinService {
     }
     private Store.SkinRecord checked(Store.SkinRecord skin) throws IOException {
         if (skin == null || skin.value() == null || skin.signature() == null || skin.value().length() > 16384 || skin.signature().length() > 8192)
-            throw new IOException("Nieprawidłowe dane tekstury.");
+            throw new Lang.Failure("texture_data_invalid");
         try {
             JsonObject decoded = JsonParser.parseString(new String(Base64.getDecoder().decode(skin.value()), StandardCharsets.UTF_8)).getAsJsonObject();
             URI url = URI.create(decoded.getAsJsonObject("textures").getAsJsonObject("SKIN").get("url").getAsString());
             if (!url.getHost().equals("textures.minecraft.net") || !Set.of("https", "http").contains(url.getScheme())
                     || !url.getPath().matches("/texture/[a-f0-9]{32,128}") || url.getUserInfo() != null || url.getPort() != -1)
-                throw new IOException("Tekstura musi pochodzić z textures.minecraft.net.");
+                throw new Lang.Failure("texture_host");
             Base64.getDecoder().decode(skin.signature());
             return skin;
-        } catch (RuntimeException e) { throw new IOException("Nieprawidłowa tekstura skina."); }
+        } catch (RuntimeException e) { throw new Lang.Failure("texture_invalid"); }
     }
     private JsonObject get(String url) throws IOException, InterruptedException { return send(request(url).GET().build()); }
     private JsonObject getMineSkin(String url) throws IOException, InterruptedException {
@@ -142,19 +142,19 @@ public final class SkinService {
         return HttpRequest.newBuilder(URI.create(url)).header("User-Agent", "BongoUtils/1.0").header("Accept", "application/json").timeout(Duration.ofSeconds(12));
     }
     private static void requireSuccess(int status) throws IOException {
-        if (status < 200 || status >= 300) throw new IOException("Usługa skina zwróciła HTTP " + status + (status == 429 ? " (limit zapytań)." : "."));
+        if (status < 200 || status >= 300) throw new Lang.Failure("skin_http", status, status == 429);
     }
     private static JsonObject json(InputStream input) throws IOException {
         byte[] bytes = input.readNBytes(131073);
-        if (bytes.length > 131072) throw new IOException("Zbyt duża odpowiedź API.");
+        if (bytes.length > 131072) throw new Lang.Failure("api_large");
         try { return JsonParser.parseString(new String(bytes, StandardCharsets.UTF_8)).getAsJsonObject(); }
-        catch (RuntimeException e) { throw new IOException("Nieprawidłowa odpowiedź API."); }
+        catch (RuntimeException e) { throw new Lang.Failure("api_invalid"); }
     }
     private static void field(OutputStream out, String boundary, String name, String value) throws IOException {
         out.write(("--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + name + "\"\r\n\r\n" + value + "\r\n").getBytes(StandardCharsets.UTF_8));
     }
     private static String safeId(String id) throws IOException {
-        if (!id.matches("[a-zA-Z0-9-]{8,64}")) throw new IOException("Nieprawidłowy identyfikator MineSkin."); return id;
+        if (!id.matches("[a-zA-Z0-9-]{8,64}")) throw new Lang.Failure("mineskin_id"); return id;
     }
     public static UUID parseUuid(String raw) {
         if (raw.matches("[a-fA-F0-9]{32}")) raw = raw.replaceFirst("(.{8})(.{4})(.{4})(.{4})(.{12})", "$1-$2-$3-$4-$5");

@@ -51,7 +51,7 @@ class MsaLoginTest {
     @Test void greenPrivateWelcomeIsPersistedOnceOnlyForVerifiedJoin() throws Exception {
         Store store = new Store(directory);
         UUID owner = UUID.randomUUID();
-        var welcome = MsaLogin.registerJoined(store, "MsaOwner", owner, true);
+        var welcome = MsaLogin.registerJoined(store, "MsaOwner", owner, true, "pl_pl");
         assertNotNull(welcome);
         assertTrue(store.reserved("MSAOWNER"));
         assertNull(MsaLogin.registerJoined(store, "MsaOwner", owner, true)); // configuration refresh
@@ -60,10 +60,10 @@ class MsaLoginTest {
         assertEquals(TextColor.fromLegacyFormat(ChatFormatting.GREEN), welcome.getStyle().getColor());
     }
     @Test void rejectionExplainsLocalReservationOrGlobalOccupationWithOriginalCasing() {
-        String local = MsaLogin.rejection(RESERVED_MSA, "Someone");
+        String local = MsaLogin.rejection("pl_pl", RESERVED_MSA, "Someone");
         assertEquals(3, local.lines().count());
         assertTrue(local.contains("zarejestrowane jako \"Konto MSA\""));
-        String global = MsaLogin.rejection(OCCUPIED_MSA, "MiXeDCaSe");
+        String global = MsaLogin.rejection("pl_pl", OCCUPIED_MSA, "MiXeDCaSe");
         assertEquals(2, global.lines().count());
         assertTrue(global.startsWith("IGN MiXeDCaSe jest już zajęty przez inne konto MSA!\n"));
     }
