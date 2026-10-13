@@ -1,3 +1,9 @@
+# 1.4.2 — 2026-10-13
+
+- Mask real SPECTATOR mode as SURVIVAL in other players' TAB packets during initialization and live updates; preserve the owner's actual mode and controls.
+- Hide the real spectator entity from all other viewers and refresh tracking immediately when game mode changes; restore tracking when spectator mode ends.
+- Regression coverage for live mode changes, late observers, another spectator, reconnects and dimension transitions.
+
 # 1.4.1 — 2026-10-11
 
 - Combine the complete 1.4.0 feature branch with the PL/EN translation update; restore /ignore, /vanish, /semi-vanish and account migration in the distributed JAR.

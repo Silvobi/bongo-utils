@@ -18,6 +18,12 @@ This mod's code was written by AI — OpenAI Codex — based on Bongo's requirem
 - Integracja z **Bongo's Teleports 1.4.1** blokuje TPA w obie strony. Zmiana ignorowania anuluje również istniejącą prośbę, potwierdzenie kosztu lub warm-up.
 - Lista jest zapisywana w `config/bongoutils/social.json`, według UUID. Można odblokować także zapamiętanego gracza offline.
 
+### Maskowanie prawdziwego trybu obserwatora w TAB (1.4.2)
+
+Inni gracze otrzymują zwykły tryb `SURVIVAL` w danych TAB osoby będącej faktycznie w `SPECTATOR`. Jej wpis pozostaje na liście bez automatycznej kursywy i sortowania obserwatorów. Dotyczy to aktualizacji trybu, nowych połączeń, ponownego wejścia i zmiany wymiaru. Właściciel dostaje prawdziwy tryb i zachowuje sterowanie obserwatorem.
+
+Postać faktycznego obserwatora nie jest wysyłana pozostałym klientom, również innym obserwatorom. Przy zmianie trybu śledzenie postaci jest natychmiast odświeżane; wyjście z obserwatora ponownie pokazuje postać. To chroni przed pokazaniem jej jako zwykłego gracza wskutek zamaskowanych danych TAB. Ignorowanie i oba tryby vanish zachowują swoje działanie.
+
 ### Vanish i semi-vanish
 
 Komendy wymagają **OP poziomu 4** i przełączają stan gracza wykonującego komendę:
@@ -74,12 +80,12 @@ Weryfikacja podpisanego czatu kont premium nadal wymaga zalogowanego klienta pre
 
 **Bongo's server-side utility tool.**
 
-Wersja **1.4.1**. Mod wyłącznie serwerowy dla **Minecraft Java 26.3**, **Fabric Loader 0.19.5** i **Fabric API 0.161.0+26.3**. Wymaga **Java 25**. Klient może być vanilla — nie instaluje BongoUtils ani Fabric API.
+Wersja **1.4.2**. Mod wyłącznie serwerowy dla **Minecraft Java 26.3**, **Fabric Loader 0.19.5** i **Fabric API 0.161.0+26.3**. Wymaga **Java 25**. Klient może być vanilla — nie instaluje BongoUtils ani Fabric API.
 
 ## Instalacja
 
 1. Zatrzymaj serwer i wykonaj kopię świata oraz danych graczy.
-2. Umieść `BongoUtils-1.4.1.jar` i `fabric-api-0.161.0+26.3.jar` w katalogu `mods/` serwera Fabric 26.3. Przy aktualizacji usuń stary JAR BongoUtils; nie zostawiaj dwóch wersji moda. Zachowaj katalog `config/bongoutils/`.
+2. Umieść `BongoUtils-1.4.2.jar` i `fabric-api-0.161.0+26.3.jar` w katalogu `mods/` serwera Fabric 26.3. Przy aktualizacji usuń stary JAR BongoUtils; nie zostawiaj dwóch wersji moda. Zachowaj katalog `config/bongoutils/`.
 3. W `server.properties` ustaw:
 
    ```properties
@@ -256,7 +262,7 @@ Z Java 25:
 .\gradlew.bat build
 ```
 
-Na Linuxie: `bash gradlew build`. Wynik: `build/libs/BongoUtils-1.4.1.jar`. Plik `-sources.jar` jest archiwum kodu, nie modem do instalacji. Loom 1.17.12 i Gradle 9.6.0 są przypięte w projekcie. Minecraft 26.3 używa oficjalnych nazw klas i nie wymaga Yarn.
+Na Linuxie: `bash gradlew build`. Wynik: `build/libs/BongoUtils-1.4.2.jar`. Plik `-sources.jar` jest archiwum kodu, nie modem do instalacji. Loom 1.17.12 i Gradle 9.6.0 są przypięte w projekcie. Minecraft 26.3 używa oficjalnych nazw klas i nie wymaga Yarn.
 
 `build` uruchamia 39 testów dotyczące haseł, trwałości danych, normalizacji nicków, URL Discorda, sieci prywatnych, PNG, limitów, whitelisty IGN, pierwszeństwa MSA, zmiany i wyczyszczenia hasła, ignorowania i migracji. Sprawdzane są trwałość zmian po restarcie, odrzucenie starego hasła, brak nadpisania nowszego zapisu przez stary formularz, ochrona MSA, uszkodzony plik konta i rejestracja po wyczyszczeniu. Testy whitelisty obejmują duplikaty z różną wielkością liter i odrzucenie błędnego pliku bez utraty poprzedniej listy.
 

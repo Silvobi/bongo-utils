@@ -134,11 +134,21 @@ public final class Social {
         }
         for (var level : server.getAllLevels()) ((pl.bongo.bongoutils.mixin.ChunkMapAccess) level.getChunkSource().chunkMap).bongo$entities().values().forEach(e -> e.updatePlayers(players));
     }
+    /** Reconcile entity visibility immediately after changing the real game mode. */
+    public static void refreshTracking(ServerPlayer player) {
+        if (server == null) return;
+        var tracked=((pl.bongo.bongoutils.mixin.ChunkMapAccess)player.level().getChunkSource().chunkMap)
+                .bongo$entities().get(player.getId());
+        if (tracked != null) tracked.updatePlayers(List.copyOf(server.getPlayerList().getPlayers()));
+    }
     public static ClientboundPlayerInfoUpdatePacket.Entry tab(ServerPlayer viewer, ClientboundPlayerInfoUpdatePacket.Entry entry) {
         if (viewer.getUUID().equals(entry.profileId())) return entry;
         if (full(entry.profileId())) return null;
         boolean ignored = blocked(viewer.getUUID(), entry.profileId());
-        Component display = entry.displayName(); int latency = entry.latency(); GameType game = entry.gameMode();
+        Component display = entry.displayName(); int latency = entry.latency();
+        // Vanilla uses this field for spectator TAB styling and world rendering. The owner
+        // keeps the real mode above; observers receive a normal TAB mode and no spectator entity.
+        GameType game = entry.gameMode() == GameType.SPECTATOR ? GameType.SURVIVAL : entry.gameMode();
         int listOrder = entry.listOrder();
         if (ignored) {
             boolean masked = state.ignores(entry.profileId(), viewer.getUUID());

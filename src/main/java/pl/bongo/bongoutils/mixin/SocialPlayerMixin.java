@@ -4,9 +4,14 @@ import net.minecraft.network.chat.*;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import pl.bongo.bongoutils.Social;
 @Mixin(ServerPlayer.class)
 public abstract class SocialPlayerMixin {
+    @Inject(method="setGameMode", at=@At("RETURN"))
+    private void bongo$gameMode(net.minecraft.world.level.GameType mode, CallbackInfoReturnable<Boolean> cir) {
+        if (cir.getReturnValueZ()) Social.refreshTracking((ServerPlayer)(Object)this);
+    }
     @Inject(method="sendSystemMessage(Lnet/minecraft/network/chat/Component;Z)V", at=@At("HEAD"), cancellable=true)
     private void bongo$quiet(Component message, boolean overlay, CallbackInfo ci) {
         if (Social.hiddenSystem(message)) ci.cancel();

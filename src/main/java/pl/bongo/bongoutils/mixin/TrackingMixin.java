@@ -11,6 +11,8 @@ public abstract class TrackingMixin {
     @Shadow public abstract void removePlayer(ServerPlayer player);
     @Inject(method="updatePlayer", at=@At("HEAD"), cancellable=true)
     private void bongo$track(ServerPlayer viewer, CallbackInfo ci) {
-        if (entity != viewer && Social.full(entity)) { removePlayer(viewer); ci.cancel(); }
+        if (entity != viewer && (Social.full(entity) || entity instanceof ServerPlayer target && target.isSpectator())) {
+            removePlayer(viewer); ci.cancel();
+        }
     }
 }
