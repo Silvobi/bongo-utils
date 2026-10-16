@@ -14,6 +14,8 @@ public abstract class SocialPacketMixin {
         return packet;
     }
     private static Packet<?> transform(Packet<?> packet, net.minecraft.server.level.ServerPlayer viewer) {
+        if (packet instanceof ClientboundSetPlayerTeamPacket team) return pl.bongo.bongoutils.Afk.filter(viewer, team);
+        if (packet instanceof ClientboundSetEntityDataPacket data) return pl.bongo.bongoutils.Rest.decorate(data);
         if(packet instanceof ClientboundCommandSuggestionsPacket suggestions) {
             var names=Social.state.snapshot().names;
             var filtered=suggestions.suggestions().stream().filter(e -> names.entrySet().stream().noneMatch(p -> !p.getKey().equals(viewer.getUUID())

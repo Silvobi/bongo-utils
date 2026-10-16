@@ -7,6 +7,65 @@ Kod tego moda został napisany przez AI — OpenAI Codex — na podstawie wymaga
 
 This mod's code was written by AI — OpenAI Codex — based on Bongo's requirements and guidance.
 
+## Siedzenie, leżenie, AFK i wiki (1.6.0)
+
+| Komenda | Działanie |
+|---|---|
+| `/sit` | Siada w obecnym miejscu; ponowne użycie powoduje wstanie. Nie wymaga krzesła ani specjalnego bloku. |
+| `/lay` | Kładzie postać w obecnym miejscu; ponowne użycie powoduje wstanie. |
+| `/wiki` | Pokazuje przycisk otwierający `https://tinyurl.com/bxw-smp`, ze standardowym potwierdzeniem otwarcia linku w Minecrafcie. |
+| `/afk` | Ręcznie włącza/wyłącza szary, pochylony sufiks **AFK** w TAB i nad postacią. |
+
+AFK nie wymaga OP, nie włącza się automatycznie i resetuje się po wylogowaniu. Zachowuje istniejące prefiksy, kolory i sufiksy drużyny; nie zmienia rzeczywistej przynależności do drużyny na serwerze. Aktualizuje oznaczenia także dla graczy dołączających później i respektuje ukrycie przez Vanish oraz maskowanie przez `/ignore`.
+
+Komendy są dostępne dla zwykłych graczy i nie wymagają moda na kliencie. Można usiąść na bezpiecznej powierzchni, także na płytach, schodach i dywanach. Leżenie wymaga dodatkowo równego podparcia i miejsca pod całą poziomą postacią. Sprawdzane są rzeczywiste kształty kolizji, miejsce na wstanie, granica świata i załadowanie chunków.
+
+Odpoczynek jest blokowany w powietrzu, podczas jazdy, pływania, lotu, palenia się, zamarzania, w trybie widza i bezpośrednio po obrażeniach. Niebezpieczne bloki obejmują płyny, ogień, lawę, kaktusy, magmę, zapalone ogniska, krzaki jagód, róże Withera, sypki śnieg, nacieki, kotły z lawą i portale. Zgaszone ognisko jest dopuszczalne. Można rozszerzyć listę datapackiem przez tag bloku `bongoutils:unsafe_rest`.
+
+Z siedzenia wstaje się klawiszem ruchu, skoku, Shift lub komendą. Przy leżeniu dostępny jest też przycisk **Opuść łóżko**. Obrażenia, teleportacja, zmiana wymiaru lub trybu gry, śmierć, wylogowanie i ponowna konfiguracja klienta kończą pozycję. Otoczenie jest sprawdzane co tick; utrata podłoża lub nowe zagrożenie również przerywa odpoczynek. Przy wstawaniu mod wybiera bezpieczne miejsce w pobliżu, jeśli pierwotne zostało zablokowane.
+
+`/lay` korzysta z animacji klienta, ale nie zapisuje rzeczywistego stanu snu na serwerze: nie przewija nocy, nie zmienia punktu odrodzenia ani nie zajmuje łóżka. Pozycje są tymczasowe. Siedziska nie zapisują się w świecie ani danych gracza, a zapis pozycji siedzącego gracza zachowuje wysokość bezpiecznego stania.
+
+### Sitting, lying down and wiki (English)
+
+`/afk` manually toggles a gray italic **AFK** suffix in TAB and above the character, without OP or a client mod. It preserves existing team decorations and real server team membership, updates late joiners, respects vanish/ignore and resets on disconnect. There is no automatic idle timer.
+
+`/sit` and `/lay` toggle sitting and lying down at the player's current position, without requiring a chair, bed, OP or client mod. Sitting supports ordinary safe surfaces, slabs, stair treads and carpets; lying additionally requires level support and room for the horizontal body. Hazardous blocks/fluids, unsupported ground, blocked standing space, flight, riding, swimming, spectator mode and recent damage prevent starting. Safety is rechecked every tick.
+
+Movement, jump or Shift exits sitting; **Leave Bed** or `/lay` exits lying. Damage, teleportation, dimension/game-mode changes, death, disconnect and configuration refresh end the pose and clean up temporary entities. Lying uses the native client animation without changing server sleep voting, respawn points or bed occupancy. Temporary seats never persist, and player saves retain the safe standing position. Extra unsafe blocks can be added with the `bongoutils:unsafe_rest` block tag.
+
+`/wiki` displays a localized button for `https://tinyurl.com/bxw-smp`, using Minecraft's normal external-link confirmation. All feedback supports Polish and English according to the client language.
+
+## Poczta offline (1.5.0)
+
+| Komenda | Działanie |
+|---|---|
+| `/mail send <gracz>` | Otwiera wielowierszowy formularz wiadomości z przyciskami **Wyślij** i **Anuluj**, także dla zapamiętanego gracza offline. |
+| `/mail send *` | **OP poziomu 4**: mail administracyjny / ważny do wszystkich zapamiętanych graczy, także offline. |
+| `/mail send-multiple <gracz1> <gracz2> ...` | **OP poziomu 4**: ważny mail do wybranych graczy; powtórzone nicki nie tworzą duplikatów. |
+| `/mail read all` | Lista wszystkich dostępnych maili, od najnowszych, po 8 na stronie. |
+| `/mail read new` | Lista nieprzeczytanych maili; dopiero otwarcie konkretnej wiadomości oznacza ją jako przeczytaną. |
+
+Po dołączeniu i po otrzymaniu maila online gracz dostaje komunikat **„Nowe wiadomości w skrzynce pocztowej: N”** / **„New messages in mailbox: N”**. Tekst jest pomarańczowy (`gold`), liczba czerwona i podkreślona; kliknięcie liczby wykonuje `/mail read new`. Język wszystkich okien i komunikatów zależy od klienta (PL/EN, z angielskim dla innych języków).
+
+Zwykłe maile respektują obustronne `/ignore <gracz>` (także alias `/ingore`): blokują wysyłanie, ukrywają wcześniejsze wiadomości tej pary i pomijają je w liczniku. Odblokowanie przywraca dostęp do historii. `/vanish` blokuje adresowanie zwykłego maila, a `/semi-vanish` dopuszcza dokładnie wpisany nick. Oba tryby ukrywają nick w podpowiedziach. Maile administracyjne z `*` i `send-multiple` są oznaczone jako **WAŻNE**, omijają ignorowanie i mogą dotrzeć także do ukrytego adresata.
+
+OP może dodać **Załączniki URL** w formularzu: do 5 pełnych adresów HTTP/HTTPS, po jednym w wierszu (maksymalnie 2048 znaków na adres). Odbiorca widzi przyciski **Otwórz załącznik 1**, **Otwórz załącznik 2** itd.; po najechaniu widzi pełny adres, a kliknięcie korzysta ze zwykłego potwierdzenia otwarcia linku w Minecrafcie. Linki mogą prowadzić np. do obrazów, dokumentów lub stron; serwer przechowuje adresy i nie pobiera plików. Odebranie OP przed wysłaniem unieważnia wysyłkę administracyjną lub z załącznikami. Błędny adres pozostawia formularz z zachowaną treścią do poprawy.
+
+Wiadomości, status odczytu i adresy załączników są zapisywane atomowo w `config/bongoutils/mail.json`, według UUID. Wysyłka zbiorowa zapisuje się w całości albo wcale. Migracje MOVE/SWAP/OVERRIDE obejmują skrzynki i tożsamości nadawców; MOVE odmawia nadpisania istniejącej skrzynki. Wiadomości zapisane przez wcześniejszy prototyp zachowują treść i stan odczytu; dawne załączniki przedmiotowe nie są odtwarzane.
+
+Nick musi należeć do gracza zapamiętanego przez BongoUtils; `*` obejmuje graczy znanych w chwili otwarcia formularza, bez przyszłych kont. Treść ma 1–4000 znaków. Zwykły gracz może wysłać 5 maili na minutę; OP nie ma tego ograniczenia.
+
+### Offline mail (English)
+
+`/mail send <player>` opens a multiline compose dialog with **Send** and **Cancel**, including for a known offline player. **OP level 4** can use `/mail send *` for all known players or `/mail send-multiple <player1> <player2> ...` for selected recipients. These administration messages are marked **IMPORTANT** and bypass ignore and vanish restrictions. Duplicate names receive one copy. `/mail read all` and `/mail read new` show eight messages per page, newest first; only opening a message marks it read.
+
+Unread notifications appear on join and on live delivery. The orange text ends with a red, underlined, clickable count that runs `/mail read new`. Ordinary mail respects bilateral `/ignore` (also `/ingore`), full vanish and semi vanish. Ignoring also hides old ordinary messages and their unread counts; unignoring restores them. Hidden names are excluded from suggestions, while an explicitly typed semi-vanished recipient remains reachable.
+
+Operators can enter up to five HTTP/HTTPS attachment URLs, one per line, with at most 2048 characters per URL. Each attachment has an **Open attachment** button and a tooltip with the complete URL. Clicking uses Minecraft's normal external-link confirmation. Links can point to images, documents or pages; the server stores URLs without downloading their contents. Dialog actions recheck OP and privacy settings before sending, and invalid URLs preserve the draft for correction. Mail, read status and URLs persist in `config/bongoutils/mail.json` and participate in account migrations and rollback. Old prototype messages retain their text/read state; obsolete item attachments are discarded.
+
+Recipients must already be known to BongoUtils; broadcasts snapshot known accounts when composing and exclude future accounts. Text is limited to 4000 characters and ordinary senders to five mails per minute. All mail dialogs and feedback support PL/EN using the recipient's client locale.
+
 ## Funkcje dostępne od 1.4.0
 
 ### Ignorowanie graczy

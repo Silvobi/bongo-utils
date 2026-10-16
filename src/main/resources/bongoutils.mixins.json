@@ -14,6 +14,8 @@
     "PlayerInfoAccess",
     "SocialPacketMixin",
     "SocialPlayerMixin",
+    "RestPlayerMixin",
+    "RestServerPlayerMixin",
     "SuggestionMixin",
     "SelectorMixin",
     "MsgMixin",

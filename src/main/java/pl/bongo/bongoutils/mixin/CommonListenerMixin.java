@@ -18,6 +18,7 @@ public abstract class CommonListenerMixin implements pl.bongo.bongoutils.Listene
         else if ((Object) this instanceof ServerGamePacketListenerImpl game) {
             BongoUtils.skinUi.submit(game.player, packet);
             BongoUtils.changePassUi.submit(game.player, packet);
+            BongoUtils.mailUi.submit(game.player, packet);
         }
     }
 }

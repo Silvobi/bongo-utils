@@ -1,3 +1,8 @@
 accessWidener v2 official
+accessible method net/minecraft/network/protocol/game/ClientboundSetPlayerTeamPacket <init> (Ljava/lang/String;ILjava/util/Optional;Ljava/util/Collection;)V
 accessible class net/minecraft/server/network/ServerLoginPacketListenerImpl$State
 accessible class net/minecraft/server/level/ChunkMap$TrackedEntity
+accessible field net/minecraft/world/entity/Entity DATA_POSE Lnet/minecraft/network/syncher/EntityDataAccessor;
+accessible field net/minecraft/world/entity/LivingEntity SLEEPING_POS_ID Lnet/minecraft/network/syncher/EntityDataAccessor;
+accessible field net/minecraft/world/entity/Interaction DATA_WIDTH_ID Lnet/minecraft/network/syncher/EntityDataAccessor;
+accessible field net/minecraft/world/entity/Interaction DATA_HEIGHT_ID Lnet/minecraft/network/syncher/EntityDataAccessor;

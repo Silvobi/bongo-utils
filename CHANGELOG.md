@@ -1,3 +1,24 @@
+# 1.6.0 — 2026-10-16
+
+- Add manual `/afk` with a gray italic suffix in TAB and above the player, PL/EN feedback, per-viewer client team overlays, team-decoration updates, vanish/ignore integration and disconnect cleanup.
+
+- Add ordinary-player `/sit` and `/lay` toggles with native vanilla-client animations and localized feedback.
+- Check collision surfaces, standing clearance, support, world bounds, fluids and dangerous blocks before entering and throughout each pose; support safe slabs, stair treads and carpets.
+- End temporary poses on input, damage, teleport/dimension/game-mode changes, death, disconnect, configuration refresh and shutdown; exclude seat helpers from world/player saves and retain a safe standing position in player data.
+- Keep laying independent of authoritative sleeping, bed occupancy, spawn changes and night skipping; synchronize the client animation for late observers.
+- Add `/wiki` with a native external-link button for `https://tinyurl.com/bxw-smp`.
+- Unit geometry/hazard tests and vanilla-protocol coverage for poses, lifecycle, saving, observers and the wiki link.
+
+# 1.5.0 — 2026-10-16
+
+- Persistent offline mail with multiline compose dialogs, paginated all/new inboxes and per-message read state.
+- OP level 4 broadcasts and selected-recipient administration mail bypass ignore; operators can attach up to five HTTP/HTTPS URLs, opened with native client link confirmation.
+- PL/EN join/live notifications with orange text and a red underlined count linking to `/mail read new`.
+- Integrate bilateral ignore, the `/ingore` alias, full/semi vanish privacy, account migration and rollback.
+- Bind dialog actions to the connection, expiring session and fresh token; recheck permissions and privacy at send time, and rate-limit ordinary senders.
+- Validate URLs without fetching them, preserve drafts on errors and retain old prototype message text/read state while discarding item attachments.
+- Unit and vanilla-protocol integration coverage for persistence, failed writes, privacy, permissions, replay protection, attachments and pagination.
+
 # 1.4.2 — 2026-10-13
 
 - Mask real SPECTATOR mode as SURVIVAL in other players' TAB packets during initialization and live updates; preserve the owner's actual mode and controls.
