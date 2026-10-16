@@ -44,9 +44,10 @@ public final class Social {
     public static boolean polish(ServerPlayer p) { return Lang.language(Lang.locale(p)).equals("pl"); }
     private static Component text(ServerPlayer p, String pl, String en) { return Component.literal(polish(p) ? pl : en); }
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        dispatcher.register(Commands.literal("ignore").executes(c -> list(c.getSource().getPlayerOrException()))
+        var ignore = dispatcher.register(Commands.literal("ignore").executes(c -> list(c.getSource().getPlayerOrException()))
                 .then(Commands.argument("nick", StringArgumentType.word()).suggests((c,b) -> SharedSuggestionProvider.suggest(names(c.getSource()), b))
                         .executes(c -> ignore(c.getSource().getPlayerOrException(), StringArgumentType.getString(c,"nick")))));
+        dispatcher.register(Commands.literal("ingore").executes(c -> list(c.getSource().getPlayerOrException())).redirect(ignore));
         for (String command : List.of("vanish", "semi-vanish")) {
             SocialState.Mode mode = command.equals("vanish") ? SocialState.Mode.VANISH : SocialState.Mode.SEMI;
             var node = Commands.literal(command).requires(Commands.hasPermission(Commands.LEVEL_ADMINS))

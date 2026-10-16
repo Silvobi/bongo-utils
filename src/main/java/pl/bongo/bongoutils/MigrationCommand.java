@@ -75,7 +75,7 @@ public final class MigrationCommand {
             if (mode == Mode.SWAP && !Files.exists(playerTo)) throw new IllegalArgumentException("SWAP wymaga zapisanych danych obu graczy.");
             if (mode == Mode.MOVE && (Files.exists(playerTo) || Files.exists(root.resolve("accounts/"+Store.key(toName)+".json"))
                     || Files.exists(root.resolve("skins/"+to+".json")) || !Social.state.ignoredBy(to).isEmpty() || Social.hidden(to)
-                    || BongoUtils.store.reserved(toName) || Files.exists(server.getWorldPath(LevelResource.PLAYER_STATS_DIR).resolve(to+".json"))
+                    || BongoUtils.mailStore.hasInbox(to) || BongoUtils.store.reserved(toName) || Files.exists(server.getWorldPath(LevelResource.PLAYER_STATS_DIR).resolve(to+".json"))
                     || Files.exists(server.getWorldPath(LevelResource.PLAYER_ADVANCEMENTS_DIR).resolve(to+".json"))))
                 throw new IllegalArgumentException("Nick docelowy ma dane. Wybierz swap lub override.");
             boolean swap = mode == Mode.SWAP;
@@ -95,6 +95,8 @@ public final class MigrationCommand {
             tx.pair(root.resolve("skins/"+from+".json"),root.resolve("skins/"+to+".json"),swap,(bytes,path)->bytes);
             var nextSocial = SocialState.migrate(Social.state.snapshot(),from,to,fromName,toName,swap);
             tx.put(root.resolve("social.json"),Store.JSON.toJson(nextSocial).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            var nextMail = MailStore.migrate(BongoUtils.mailStore.snapshot(), from, to, swap);
+            tx.put(root.resolve("mail.json"), Store.JSON.toJson(nextMail).getBytes(java.nio.charset.StandardCharsets.UTF_8));
             OptionalTeleports teleports = OptionalTeleports.find();
             ClanMigration clans=ClanMigration.find(world);
             if(mode==Mode.MOVE && clans!=null && clans.contains(to))throw new IllegalArgumentException("Nick docelowy ma dane klanowe. Wybierz swap lub override.");
@@ -106,7 +108,7 @@ public final class MigrationCommand {
                 tx.put(file,migrateTeleports(json,from,to,swap).getBytes(java.nio.charset.StandardCharsets.UTF_8));
             }
             Path backup = tx.commit(root.resolve("migration-backups"),mode+" "+fromName+" ("+from+") -> "+toName+" ("+to+")",() -> {
-                try { Social.state.reload(); if (teleports != null) teleports.reload(); if(clans!=null)clans.reload(); }
+                try { Social.state.reload(); BongoUtils.mailStore.reload(); if (teleports != null) teleports.reload(); if(clans!=null)clans.reload(); }
                 catch (Exception e) { throw new IllegalStateException(e); }
             });
             var cache=(pl.bongo.bongoutils.mixin.PlayerListCacheAccess)server.getPlayerList();

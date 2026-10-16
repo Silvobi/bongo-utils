@@ -7,6 +7,36 @@ Kod tego moda został napisany przez AI — OpenAI Codex — na podstawie wymaga
 
 This mod's code was written by AI — OpenAI Codex — based on Bongo's requirements and guidance.
 
+## Poczta offline (1.5.0)
+
+| Komenda | Działanie |
+|---|---|
+| `/mail send <gracz>` | Otwiera wielowierszowy formularz wiadomości z przyciskami **Wyślij** i **Anuluj**, także dla zapamiętanego gracza offline. |
+| `/mail send *` | **OP poziomu 4**: mail administracyjny / ważny do wszystkich zapamiętanych graczy, także offline. |
+| `/mail send-multiple <gracz1> <gracz2> ...` | **OP poziomu 4**: ważny mail do wybranych graczy; powtórzone nicki nie tworzą duplikatów. |
+| `/mail read all` | Lista wszystkich dostępnych maili, od najnowszych, po 8 na stronie. |
+| `/mail read new` | Lista nieprzeczytanych maili; dopiero otwarcie konkretnej wiadomości oznacza ją jako przeczytaną. |
+
+Po dołączeniu i po otrzymaniu maila online gracz dostaje komunikat **„Nowe wiadomości w skrzynce pocztowej: N”** / **„New messages in mailbox: N”**. Tekst jest pomarańczowy (`gold`), liczba czerwona i podkreślona; kliknięcie liczby wykonuje `/mail read new`. Język wszystkich okien i komunikatów zależy od klienta (PL/EN, z angielskim dla innych języków).
+
+Zwykłe maile respektują obustronne `/ignore <gracz>` (także alias `/ingore`): blokują wysyłanie, ukrywają wcześniejsze wiadomości tej pary i pomijają je w liczniku. Odblokowanie przywraca dostęp do historii. `/vanish` blokuje adresowanie zwykłego maila, a `/semi-vanish` dopuszcza dokładnie wpisany nick. Oba tryby ukrywają nick w podpowiedziach. Maile administracyjne z `*` i `send-multiple` są oznaczone jako **WAŻNE**, omijają ignorowanie i mogą dotrzeć także do ukrytego adresata.
+
+OP może zaznaczyć **Dołącz kopię przedmiotów z ręki** w formularzu. Załącznik to kopia jednego stosu z głównej ręki z chwili otwarcia formularza, z zachowaniem danych przedmiotu; oryginał zostaje u administratora. Każdy odbiorca dostaje własną kopię i może odebrać ją raz przyciskiem **Odbierz załącznik**. Wymagane jest jedno puste miejsce w ekwipunku. Odebranie OP przed wysłaniem unieważnia wysyłkę administracyjną lub z załącznikiem.
+
+Wiadomości, status odczytu i odbioru załączników są zapisywane atomowo w `config/bongoutils/mail.json`, według UUID. Wysyłka zbiorowa zapisuje się w całości albo wcale. Migracje MOVE/SWAP/OVERRIDE obejmują skrzynki i tożsamości nadawców; MOVE odmawia nadpisania istniejącej skrzynki. Stan odbioru załącznika jest utrwalany przed wydaniem przedmiotu, aby ponowne kliknięcie nie utworzyło duplikatu. Nagłe przerwanie procesu dokładnie pomiędzy tym zapisem a zapisem ekwipunku może wymagać odtworzenia przedmiotu przez administratora.
+
+Nick musi należeć do gracza zapamiętanego przez BongoUtils; `*` obejmuje graczy znanych w chwili otwarcia formularza, bez przyszłych kont. Treść ma 1–4000 znaków. Zwykły gracz może wysłać 5 maili na minutę; OP nie ma tego ograniczenia.
+
+### Offline mail (English)
+
+`/mail send <player>` opens a multiline compose dialog with **Send** and **Cancel**, including for a known offline player. **OP level 4** can use `/mail send *` for all known players or `/mail send-multiple <player1> <player2> ...` for selected recipients. These administration messages are marked **IMPORTANT** and bypass ignore and vanish restrictions. Duplicate names receive one copy. `/mail read all` and `/mail read new` show eight messages per page, newest first; only opening a message marks it read.
+
+Unread notifications appear on join and on live delivery. The orange text ends with a red, underlined, clickable count that runs `/mail read new`. Ordinary mail respects bilateral `/ignore` (also `/ingore`), full vanish and semi vanish. Ignoring also hides old ordinary messages and their unread counts; unignoring restores them. Hidden names are excluded from suggestions, while an explicitly typed semi-vanished recipient remains reachable.
+
+An operator can attach a copy of the main-hand stack captured when opening the composer. Item data is preserved, the original stays with the operator, and each recipient can claim once with one empty inventory slot. Dialog actions recheck OP and privacy settings before sending. Mail, read status and claims persist in `config/bongoutils/mail.json` and participate in account migrations and rollback. Claims are saved before items are awarded to prevent duplicates; a process crash precisely before the awarded inventory is saved may require an administrator to restore the item.
+
+Recipients must already be known to BongoUtils; broadcasts snapshot known accounts when composing and exclude future accounts. Text is limited to 4000 characters and ordinary senders to five mails per minute. All mail dialogs and feedback support PL/EN using the recipient's client locale.
+
 ## Funkcje dostępne od 1.4.0
 
 ### Ignorowanie graczy

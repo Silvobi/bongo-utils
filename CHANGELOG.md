@@ -1,3 +1,12 @@
+# 1.5.0 — 2026-10-16
+
+- Persistent offline mail with multiline compose dialogs, paginated all/new inboxes and per-message read state.
+- OP level 4 broadcasts and selected-recipient administration mail bypass ignore; operator item attachments can be claimed once per recipient.
+- PL/EN join/live notifications with orange text and a red underlined count linking to `/mail read new`.
+- Integrate bilateral ignore, the `/ingore` alias, full/semi vanish privacy, account migration and rollback.
+- Bind dialog actions to the connection, expiring session and fresh token; recheck permissions and privacy at send/claim time, and rate-limit ordinary senders.
+- Unit and vanilla-protocol integration coverage for persistence, failed writes, privacy, permissions, replay protection, attachments and pagination.
+
 # 1.4.2 — 2026-10-13
 
 - Mask real SPECTATOR mode as SURVIVAL in other players' TAB packets during initialization and live updates; preserve the owner's actual mode and controls.
