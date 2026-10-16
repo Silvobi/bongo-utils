@@ -1,3 +1,14 @@
+# 1.6.0 — 2026-10-16
+
+- Add manual `/afk` with a gray italic suffix in TAB and above the player, PL/EN feedback, per-viewer client team overlays, team-decoration updates, vanish/ignore integration and disconnect cleanup.
+
+- Add ordinary-player `/sit` and `/lay` toggles with native vanilla-client animations and localized feedback.
+- Check collision surfaces, standing clearance, support, world bounds, fluids and dangerous blocks before entering and throughout each pose; support safe slabs, stair treads and carpets.
+- End temporary poses on input, damage, teleport/dimension/game-mode changes, death, disconnect, configuration refresh and shutdown; exclude seat helpers from world/player saves and retain a safe standing position in player data.
+- Keep laying independent of authoritative sleeping, bed occupancy, spawn changes and night skipping; synchronize the client animation for late observers.
+- Add `/wiki` with a native external-link button for `https://tinyurl.com/bxw-smp`.
+- Unit geometry/hazard tests and vanilla-protocol coverage for poses, lifecycle, saving, observers and the wiki link.
+
 # 1.5.0 — 2026-10-16
 
 - Persistent offline mail with multiline compose dialogs, paginated all/new inboxes and per-message read state.

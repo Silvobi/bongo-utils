@@ -42,6 +42,21 @@ tasks.register('mailIntegrationTest', JavaExec) {
     args(project.findProperty('testPort') ?: '25579', project.findProperty('testRconPort') ?: '25580',
             project.findProperty('testRconPassword') ?: 'bongo-local-test')
 }
+
+tasks.register('restIntegrationTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'pl.bongo.bongoutils.RestIntegrationHarness'
+    args(project.findProperty('testPort') ?: '25579', project.findProperty('testRconPort') ?: '25580',
+            project.findProperty('testRconPassword') ?: 'bongo-local-test')
+}
+tasks.register('afkIntegrationTest', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'pl.bongo.bongoutils.AfkIntegrationHarness'
+    args(project.findProperty('testPort') ?: '25579', project.findProperty('testRconPort') ?: '25580',
+            project.findProperty('testRconPassword') ?: 'bongo-local-test')
+}
 tasks.register('whitelistIntegrationTest', JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath

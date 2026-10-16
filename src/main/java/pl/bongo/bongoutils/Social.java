@@ -126,6 +126,7 @@ public final class Social {
     private static CommandSyntaxException error(ServerPlayer p, String pl, String en) { return new SimpleCommandExceptionType(text(p,pl,en)).create(); }
     public static void refresh() {
         if (server == null) return;
+        Afk.tick(server);
         List<ServerPlayer> players = List.copyOf(server.getPlayerList().getPlayers());
         // Removal also clears previously cached names. Initialization is filtered per recipient.
         for (ServerPlayer viewer : players) {
@@ -143,13 +144,13 @@ public final class Social {
         if (tracked != null) tracked.updatePlayers(List.copyOf(server.getPlayerList().getPlayers()));
     }
     public static ClientboundPlayerInfoUpdatePacket.Entry tab(ServerPlayer viewer, ClientboundPlayerInfoUpdatePacket.Entry entry) {
-        if (viewer.getUUID().equals(entry.profileId())) return entry;
-        if (full(entry.profileId())) return null;
-        boolean ignored = blocked(viewer.getUUID(), entry.profileId());
+        boolean self = viewer.getUUID().equals(entry.profileId());
+        if (!self && full(entry.profileId())) return null;
+        boolean ignored = !self && blocked(viewer.getUUID(), entry.profileId());
         Component display = entry.displayName(); int latency = entry.latency();
         // Vanilla uses this field for spectator TAB styling and world rendering. The owner
         // keeps the real mode above; observers receive a normal TAB mode and no spectator entity.
-        GameType game = entry.gameMode() == GameType.SPECTATOR ? GameType.SURVIVAL : entry.gameMode();
+        GameType game = !self && entry.gameMode() == GameType.SPECTATOR ? GameType.SURVIVAL : entry.gameMode();
         int listOrder = entry.listOrder();
         if (ignored) {
             boolean masked = state.ignores(entry.profileId(), viewer.getUUID());
@@ -162,7 +163,15 @@ public final class Social {
             // entries to the bottom without making their world entities render as spectators.
             listOrder = -Integer.MAX_VALUE;
         }
-        return new ClientboundPlayerInfoUpdatePacket.Entry(entry.profileId(), entry.profile(), !hidden(entry.profileId()) && entry.listed(), latency,
+        if (!ignored && Afk.active(entry.profileId())) {
+            if (display == null) {
+                String name = entry.profile() != null ? entry.profile().name() : state.name(entry.profileId());
+                var target = server == null ? null : server.getPlayerList().getPlayer(entry.profileId());
+                display = net.minecraft.world.scores.PlayerTeam.formatNameForTeam(target == null ? null : target.getTeam(), Component.literal(name));
+            }
+            display = Afk.append(display);
+        }
+        return new ClientboundPlayerInfoUpdatePacket.Entry(entry.profileId(), entry.profile(), (self || !hidden(entry.profileId())) && entry.listed(), latency,
                 game, display, entry.showHat(), listOrder, entry.chatSession());
     }
     public static boolean hiddenSystem(Component message) {

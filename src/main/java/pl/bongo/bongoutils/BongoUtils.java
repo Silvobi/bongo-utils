@@ -5,6 +5,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -44,6 +45,7 @@ public final class BongoUtils implements ModInitializer {
             IgnWhitelistCommand.register(dispatcher);
             Social.register(dispatcher);
             mailUi.register(dispatcher);
+            Rest.register(dispatcher); WikiCommand.register(dispatcher); Afk.register(dispatcher);
             MigrationCommand.register(dispatcher);
             dispatcher.register(Commands.literal("skin").executes(context -> skinUi.open(context.getSource().getPlayerOrException())));
             dispatcher.register(Commands.literal("changepass").requires(ChangePassUi::allowed)
@@ -75,11 +77,16 @@ public final class BongoUtils implements ModInitializer {
             }
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            Afk.disconnected(handler.player);
+            Rest.stop(handler.player, true);
             skinUi.disconnected(handler.player.getUUID()); changePassUi.disconnected(handler.player.getUUID());
             mailUi.disconnected(handler.player.getUUID());
         });
         ServerLifecycleEvents.SERVER_STARTED.register(server -> Social.server = server);
-        ServerLifecycleEvents.SERVER_STOPPED.register(server -> { workers.shutdownNow(); skinWorkers.shutdownNow(); Social.server = null; });
+        ServerTickEvents.END_SERVER_TICK.register(Rest::tick);
+        ServerTickEvents.END_SERVER_TICK.register(Afk::tick);
+        ServerLifecycleEvents.SERVER_STOPPING.register(Rest::stopAll);
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> { Afk.clear(); workers.shutdownNow(); skinWorkers.shutdownNow(); Social.server = null; });
         LOG.info("BongoUtils: server-only authentication, skins, social tools and offline mail enabled.");
     }
     private static ThreadPoolExecutor pool(int count, int queue, String prefix) {

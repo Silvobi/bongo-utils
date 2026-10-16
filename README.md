@@ -7,6 +7,35 @@ Kod tego moda został napisany przez AI — OpenAI Codex — na podstawie wymaga
 
 This mod's code was written by AI — OpenAI Codex — based on Bongo's requirements and guidance.
 
+## Siedzenie, leżenie, AFK i wiki (1.6.0)
+
+| Komenda | Działanie |
+|---|---|
+| `/sit` | Siada w obecnym miejscu; ponowne użycie powoduje wstanie. Nie wymaga krzesła ani specjalnego bloku. |
+| `/lay` | Kładzie postać w obecnym miejscu; ponowne użycie powoduje wstanie. |
+| `/wiki` | Pokazuje przycisk otwierający `https://tinyurl.com/bxw-smp`, ze standardowym potwierdzeniem otwarcia linku w Minecrafcie. |
+| `/afk` | Ręcznie włącza/wyłącza szary, pochylony sufiks **AFK** w TAB i nad postacią. |
+
+AFK nie wymaga OP, nie włącza się automatycznie i resetuje się po wylogowaniu. Zachowuje istniejące prefiksy, kolory i sufiksy drużyny; nie zmienia rzeczywistej przynależności do drużyny na serwerze. Aktualizuje oznaczenia także dla graczy dołączających później i respektuje ukrycie przez Vanish oraz maskowanie przez `/ignore`.
+
+Komendy są dostępne dla zwykłych graczy i nie wymagają moda na kliencie. Można usiąść na bezpiecznej powierzchni, także na płytach, schodach i dywanach. Leżenie wymaga dodatkowo równego podparcia i miejsca pod całą poziomą postacią. Sprawdzane są rzeczywiste kształty kolizji, miejsce na wstanie, granica świata i załadowanie chunków.
+
+Odpoczynek jest blokowany w powietrzu, podczas jazdy, pływania, lotu, palenia się, zamarzania, w trybie widza i bezpośrednio po obrażeniach. Niebezpieczne bloki obejmują płyny, ogień, lawę, kaktusy, magmę, zapalone ogniska, krzaki jagód, róże Withera, sypki śnieg, nacieki, kotły z lawą i portale. Zgaszone ognisko jest dopuszczalne. Można rozszerzyć listę datapackiem przez tag bloku `bongoutils:unsafe_rest`.
+
+Z siedzenia wstaje się klawiszem ruchu, skoku, Shift lub komendą. Przy leżeniu dostępny jest też przycisk **Opuść łóżko**. Obrażenia, teleportacja, zmiana wymiaru lub trybu gry, śmierć, wylogowanie i ponowna konfiguracja klienta kończą pozycję. Otoczenie jest sprawdzane co tick; utrata podłoża lub nowe zagrożenie również przerywa odpoczynek. Przy wstawaniu mod wybiera bezpieczne miejsce w pobliżu, jeśli pierwotne zostało zablokowane.
+
+`/lay` korzysta z animacji klienta, ale nie zapisuje rzeczywistego stanu snu na serwerze: nie przewija nocy, nie zmienia punktu odrodzenia ani nie zajmuje łóżka. Pozycje są tymczasowe. Siedziska nie zapisują się w świecie ani danych gracza, a zapis pozycji siedzącego gracza zachowuje wysokość bezpiecznego stania.
+
+### Sitting, lying down and wiki (English)
+
+`/afk` manually toggles a gray italic **AFK** suffix in TAB and above the character, without OP or a client mod. It preserves existing team decorations and real server team membership, updates late joiners, respects vanish/ignore and resets on disconnect. There is no automatic idle timer.
+
+`/sit` and `/lay` toggle sitting and lying down at the player's current position, without requiring a chair, bed, OP or client mod. Sitting supports ordinary safe surfaces, slabs, stair treads and carpets; lying additionally requires level support and room for the horizontal body. Hazardous blocks/fluids, unsupported ground, blocked standing space, flight, riding, swimming, spectator mode and recent damage prevent starting. Safety is rechecked every tick.
+
+Movement, jump or Shift exits sitting; **Leave Bed** or `/lay` exits lying. Damage, teleportation, dimension/game-mode changes, death, disconnect and configuration refresh end the pose and clean up temporary entities. Lying uses the native client animation without changing server sleep voting, respawn points or bed occupancy. Temporary seats never persist, and player saves retain the safe standing position. Extra unsafe blocks can be added with the `bongoutils:unsafe_rest` block tag.
+
+`/wiki` displays a localized button for `https://tinyurl.com/bxw-smp`, using Minecraft's normal external-link confirmation. All feedback supports Polish and English according to the client language.
+
 ## Poczta offline (1.5.0)
 
 | Komenda | Działanie |
