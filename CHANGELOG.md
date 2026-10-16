@@ -1,10 +1,11 @@
 # 1.5.0 — 2026-10-16
 
 - Persistent offline mail with multiline compose dialogs, paginated all/new inboxes and per-message read state.
-- OP level 4 broadcasts and selected-recipient administration mail bypass ignore; operator item attachments can be claimed once per recipient.
+- OP level 4 broadcasts and selected-recipient administration mail bypass ignore; operators can attach up to five HTTP/HTTPS URLs, opened with native client link confirmation.
 - PL/EN join/live notifications with orange text and a red underlined count linking to `/mail read new`.
 - Integrate bilateral ignore, the `/ingore` alias, full/semi vanish privacy, account migration and rollback.
-- Bind dialog actions to the connection, expiring session and fresh token; recheck permissions and privacy at send/claim time, and rate-limit ordinary senders.
+- Bind dialog actions to the connection, expiring session and fresh token; recheck permissions and privacy at send time, and rate-limit ordinary senders.
+- Validate URLs without fetching them, preserve drafts on errors and retain old prototype message text/read state while discarding item attachments.
 - Unit and vanilla-protocol integration coverage for persistence, failed writes, privacy, permissions, replay protection, attachments and pagination.
 
 # 1.4.2 — 2026-10-13

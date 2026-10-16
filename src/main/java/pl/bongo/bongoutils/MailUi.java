@@ -3,8 +3,6 @@ package pl.bongo.bongoutils;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.*;
-import com.mojang.serialization.JsonOps;
-import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -15,9 +13,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.*;
 import net.minecraft.network.protocol.common.*;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.ItemStack;
 
-/** Only the server chooses recipients, importance, attachment contents and mailbox IDs. */
+/** Only the server chooses recipients, importance and mailbox IDs; OP-provided links are validated before delivery. */
 public final class MailUi {
     static final int PAGE_SIZE = 8;
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'").withZone(ZoneOffset.UTC);
@@ -75,31 +72,23 @@ public final class MailUi {
             }
         }
         if (recipients.isEmpty()) throw error(player, "mail_empty_recipients");
-        String attachment = null, attachmentName = null;
-        if (ChangePassUi.allowed(player.createCommandSourceStack()) && !player.getMainHandItem().isEmpty()) {
-            try {
-                ItemStack held = player.getMainHandItem().copy();
-                attachment = encode(player, held);
-                if (attachment.length() > 262144) throw error(player, "mail_attachment_large");
-                attachmentName = held.getCount() + " × " + preview(held.getHoverName().getString(), 70);
-            } catch (RuntimeException e) { throw error(player, "mail_attachment_error"); }
-        }
-        Session session = new Session(player, Stage.COMPOSE, List.copyOf(recipients), important, attachment, attachmentName,
+        Session session = new Session(player, Stage.COMPOSE, List.copyOf(recipients), important,
                 broadcast ? Lang.text(player, "mail_everyone") : (important ? Lang.text(player, "mail_admin_recipients") : "")
                         + String.join(", ", recipients.stream().map(Social.state::name).toList()), false, 0, List.of(), null);
-        compose(player, session, "", ""); return 1;
+        compose(player, session, "", "", ""); return 1;
     }
-    private void compose(ServerPlayer player, Session previous, String initial, String error) {
+    private void compose(ServerPlayer player, Session previous, String initial, String urls, String error) {
         Session next = previous.renew(Stage.COMPOSE, previous.page, List.of(), null);
         sessions.put(player.getUUID(), next);
-        player.openDialog(MailDialogs.compose(Lang.locale(player), next.token, next.recipientLabel, next.attachmentName, initial, error));
+        player.openDialog(MailDialogs.compose(Lang.locale(player), next.token, next.recipientLabel,
+                ChangePassUi.allowed(player.createCommandSourceStack()), initial, urls, error));
     }
     public int list(ServerPlayer player, boolean unreadOnly, int requestedPage) {
         List<MailStore.Message> inbox = store.inbox(player.getUUID(), unreadOnly, Social::blocked);
         int pages = Math.max(1, (inbox.size() + PAGE_SIZE - 1) / PAGE_SIZE);
         int page = Math.clamp(requestedPage, 0, pages - 1);
         List<MailStore.Message> entries = inbox.subList(Math.min(page * PAGE_SIZE, inbox.size()), Math.min((page + 1) * PAGE_SIZE, inbox.size()));
-        Session next = new Session(player, Stage.LIST, List.of(), false, null, null, "", unreadOnly, page,
+        Session next = new Session(player, Stage.LIST, List.of(), false, "", unreadOnly, page,
                 entries.stream().map(MailStore.Message::id).toList(), null);
         sessions.put(player.getUUID(), next);
         List<String> labels = entries.stream().map(m -> (m.important() ? Lang.text(player, "mail_important") : "")
@@ -130,22 +119,28 @@ public final class MailUi {
                 case COMPOSE -> {
                     if (!action[0].equals("mail_send") || !(packet.payload().orElse(null) instanceof CompoundTag data)) return;
                     String body = data.getString("body").orElse("").strip();
-                    boolean attach = data.getString("attach").orElse("false").equals("true");
+                    String urls = data.getString("attachments").orElse("");
                     if (body.isBlank() || body.length() > MailStore.MAX_BODY) {
-                        compose(player, session, body.length() <= MailStore.MAX_BODY ? body : "", Lang.text(player, "mail_body_invalid")); return;
+                        compose(player, session, body.length() <= MailStore.MAX_BODY ? body : "",
+                                urls.length() <= MailAttachments.MAX_INPUT ? urls : "", Lang.text(player, "mail_body_invalid")); return;
                     }
-                    if ((session.important || attach) && !ChangePassUi.allowed(player.createCommandSourceStack())) {
+                    if ((session.important || !urls.isBlank()) && !ChangePassUi.allowed(player.createCommandSourceStack())) {
                         close(player); say(player, "mail_op_only"); return;
                     }
-                    if (attach && session.attachment == null) { close(player); say(player, "mail_attachment_error"); return; }
+                    List<String> attachments;
+                    try { attachments = MailAttachments.parse(urls); }
+                    catch (IllegalArgumentException e) {
+                        compose(player, session, body, urls.length() <= MailAttachments.MAX_INPUT ? urls : "",
+                                Lang.text(player, "mail_urls_invalid")); return;
+                    }
                     // Recheck privacy after composing: ignore or vanish may have changed while the dialog was open.
                     if (session.recipients.stream().anyMatch(id -> !deliverable(player.getUUID(), id, session.important))) {
                         close(player); say(player, "mail_unknown"); return;
                     }
                     if (!ChangePassUi.allowed(player.createCommandSourceStack()) && !BongoUtils.limits.allow("mail:" + player.getUUID(), 5, 60_000)) {
-                        compose(player, session, body, Lang.text(player, "mail_rate_limit")); return;
+                        compose(player, session, body, urls, Lang.text(player, "mail_rate_limit")); return;
                     }
-                    store.send(player.getUUID(), player.getGameProfile().name(), session.recipients, body, session.important, attach ? session.attachment : null);
+                    store.send(player.getUUID(), player.getGameProfile().name(), session.recipients, body, session.important, attachments);
                     close(player); say(player, "mail_sent", session.recipients.size());
                     var server = Objects.requireNonNull(player.level().getServer());
                     for (UUID id : session.recipients) {
@@ -159,12 +154,11 @@ public final class MailUi {
                     else if (action[0].startsWith("mail_open_")) {
                         int index;
                         try { index = Integer.parseInt(action[0].substring("mail_open_".length())); } catch (NumberFormatException e) { return; }
-                        if (index >= 0 && index < session.entries.size()) open(player, session, session.entries.get(index), "");
+                        if (index >= 0 && index < session.entries.size()) open(player, session, session.entries.get(index));
                     }
                 }
                 case MESSAGE -> {
                     if (action[0].equals("mail_back")) list(player, session.unreadOnly, session.page);
-                    else if (action[0].equals("mail_claim")) claim(player, session);
                 }
             }
         } catch (IOException | RuntimeException e) {
@@ -176,44 +170,13 @@ public final class MailUi {
         MailStore.Message message = store.find(player.getUUID(), id);
         return message != null && MailStore.visible(player.getUUID(), message, Social::blocked) ? message : null;
     }
-    private void open(ServerPlayer player, Session previous, UUID id, String status) throws IOException {
+    private void open(ServerPlayer player, Session previous, UUID id) throws IOException {
         if (visible(player, id) == null) { list(player, previous.unreadOnly, previous.page); return; }
         MailStore.Message message = store.read(player.getUUID(), id);
-        String attachmentName = null;
-        if (message.attachment() != null) {
-            try {
-                ItemStack item = decode(player, message.attachment());
-                attachmentName = item.getCount() + " × " + preview(item.getHoverName().getString(), 70);
-            } catch (RuntimeException e) {
-                // Removing an item-providing mod must not make the message text unreadable.
-                BongoUtils.LOG.warn("Unavailable attachment in mail {}", message.id(), e);
-                status = Lang.text(player, "mail_attachment_error");
-            }
-        }
         Session next = previous.renew(Stage.MESSAGE, previous.page, List.of(), id);
         sessions.put(player.getUUID(), next);
         player.openDialog(MailDialogs.message(Lang.locale(player), next.token, message,
-                DATE.format(Instant.ofEpochMilli(message.sentAt())), attachmentName, status));
-    }
-    private void claim(ServerPlayer player, Session session) throws IOException {
-        MailStore.Message message = visible(player, session.message);
-        if (message == null) { list(player, session.unreadOnly, session.page); return; }
-        if (message.attachment() == null || message.claimed()) return;
-        ItemStack item = decode(player, message.attachment());
-        int slot = player.getInventory().getFreeSlot();
-        if (slot < 0) { open(player, session, session.message, Lang.text(player, "mail_inventory_full")); return; }
-        if (!store.claim(player.getUUID(), message.id())) return;
-        player.getInventory().setItem(slot, item);
-        player.inventoryMenu.broadcastChanges();
-        // Save the awarded inventory immediately, rather than waiting for the periodic world save.
-        Objects.requireNonNull(player.level().getServer()).getPlayerList().save(player);
-        open(player, session, message.id(), Lang.text(player, "mail_claimed"));
-    }
-    static String encode(ServerPlayer player, ItemStack item) {
-        return ItemStack.CODEC.encodeStart(player.registryAccess().createSerializationContext(JsonOps.INSTANCE), item).getOrThrow().toString();
-    }
-    static ItemStack decode(ServerPlayer player, String json) {
-        return ItemStack.CODEC.parse(player.registryAccess().createSerializationContext(JsonOps.INSTANCE), JsonParser.parseString(json)).getOrThrow();
+                DATE.format(Instant.ofEpochMilli(message.sentAt()))));
     }
     private static String preview(String value, int max) {
         String line = value.replaceAll("\\s+", " "); return line.length() > max ? line.substring(0, max) + "…" : line;
@@ -232,17 +195,17 @@ public final class MailUi {
         final Stage stage;
         final List<UUID> recipients, entries;
         final boolean important, unreadOnly;
-        final String attachment, attachmentName, recipientLabel;
+        final String recipientLabel;
         final int page;
         final UUID message;
-        Session(ServerPlayer owner, Stage stage, List<UUID> recipients, boolean important, String attachment, String attachmentName,
+        Session(ServerPlayer owner, Stage stage, List<UUID> recipients, boolean important,
                 String recipientLabel, boolean unreadOnly, int page, List<UUID> entries, UUID message) {
             this.owner = owner; this.stage = stage; this.recipients = recipients; this.important = important;
-            this.attachment = attachment; this.attachmentName = attachmentName; this.recipientLabel = recipientLabel;
+            this.recipientLabel = recipientLabel;
             this.unreadOnly = unreadOnly; this.page = page; this.entries = entries; this.message = message;
         }
         Session renew(Stage next, int page, List<UUID> entries, UUID message) {
-            return new Session(owner, next, recipients, important, attachment, attachmentName, recipientLabel, unreadOnly, page, entries, message);
+            return new Session(owner, next, recipients, important, recipientLabel, unreadOnly, page, entries, message);
         }
     }
 }

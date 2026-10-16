@@ -10,10 +10,11 @@ import net.minecraft.network.protocol.common.*;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.server.dialog.*;
 import net.minecraft.server.dialog.body.PlainMessage;
+import net.minecraft.server.dialog.action.StaticAction;
 import static pl.bongo.bongoutils.IntegrationHarness.*;
 import static pl.bongo.bongoutils.WhitelistIntegrationHarness.command;
 
-/** Real vanilla packets against a disposable localhost server, including offline delivery and OP items. */
+/** Real vanilla packets against a disposable localhost server, including offline delivery and OP URL attachments. */
 public final class MailIntegrationHarness {
     public static void main(String[] args) throws Exception {
         SharedConstants.tryDetectVersion(); Bootstrap.bootStrap(); port = Integer.parseInt(args[0]);
@@ -45,6 +46,9 @@ public final class MailIntegrationHarness {
                 form = open(en, "mail send " + plName); en.click(form.exitAction().orElseThrow(), new CompoundTag());
                 en.click(form.actions().getFirst(), fields("cancelled", false));
                 check(open(pl, "mail read all").actions().size() == 1, "cancelled composer and replay cannot deliver mail");
+                form = open(en, "mail send " + plName);
+                en.click(form.actions().getFirst(), fields("forged URL", "https://example.com/forged")); chat(en, "This operation requires OP");
+                check(body(open(pl, "mail read new")).contains("Brak wiadomości"), "ordinary sender cannot forge URL attachments through packet fields");
                 en.send(new ServerboundChatCommandPacket("mail send *")); noDialog(en);
                 en.send(new ServerboundChatCommandPacket("mail send-multiple " + opName + " " + plName)); noDialog(en);
                 check(true, "ordinary players cannot broadcast or use send-multiple");
@@ -63,27 +67,28 @@ public final class MailIntegrationHarness {
                 check(true, "full vanish blocks ordinary delivery, semi allows it, and privacy is rechecked on submit");
                 command("bongoutils visibility " + plName + " visible");
                 command("op " + opName);
-                command("item replace entity " + opName + " weapon.mainhand with minecraft:diamond 3");
                 pl.send(new ServerboundChatCommandPacket("ignore " + opName)); chat(pl, "Ignorowanie włączone");
                 form = open(op, "mail send *");
-                check(form.common().inputs().size() == 2, "OP composer offers attachment from main hand");
+                check(form.common().inputs().size() == 2 && form.common().inputs().get(1).key().equals("attachments"), "OP composer offers URL attachments even with empty hands");
                 en.click(form.actions().getFirst(), fields("stolen session", true));
-                // Client-provided item data must never replace the server's captured stack.
-                CompoundTag attachmentFields = fields("Admin announcement", true); attachmentFields.putString("attachment", "netherite_block");
+                op.click(form.actions().getFirst(), fields("Admin announcement", "javascript:alert(1)"));
+                form = op.gameDialog();
+                check(body(form).contains("Podaj do 5 pełnych adresów"), "invalid URL stays in composer without delivering mail");
+                check(((net.minecraft.server.dialog.input.TextInput) form.common().inputs().getFirst().control()).initial().equals("Admin announcement"), "validation preserves message draft");
+                CompoundTag attachmentFields = fields("Admin announcement", "https://example.com/rules.pdf?token=a%2Fb\nhttp://example.org/image.png");
                 op.click(form.actions().getFirst(), attachmentFields); chat(op, "Wysłano maila. Liczba odbiorców:");
                 chat(en, "New messages in mailbox:");
                 inbox = open(pl, "mail read new");
                 check(inbox.actions().getFirst().button().label().getString().startsWith("[WAŻNE]"), "important broadcast bypasses ignore and is listed newest first");
                 pl.click(inbox.actions().getFirst(), new CompoundTag()); message = pl.gameDialog();
                 check(body(message).contains("ADMINISTRACJA") && body(message).contains("Admin announcement"), "administration label and message are displayed");
-                command("clear " + plName); command("give " + plName + " minecraft:cobblestone 2304");
-                pl.click(message.actions().getFirst(), new CompoundTag()); message = pl.gameDialog();
-                check(body(message).contains("Zwolnij jedno miejsce"), "full inventory does not consume attachment");
-                command("clear " + plName);
-                ActionButton claim = message.actions().getFirst(); pl.click(claim, new CompoundTag()); message = pl.gameDialog();
-                check(body(message).contains("Załącznik odebrany") && message.actions().size() == 1, "claim awards item and removes claim button");
-                check(countDiamonds(plName) == 3, "claim uses exact server-captured attachment rather than client payload");
-                pl.click(claim, new CompoundTag()); check(countDiamonds(plName) == 3, "replayed claim cannot duplicate items");
+                check(message.actions().size() == 3 && message.common().afterAction() == DialogAction.NONE, "two URL buttons and Back keep the dialog interactive");
+                check(((ClickEvent.OpenUrl) ((StaticAction) message.actions().getFirst().action().orElseThrow()).value()).uri().toString()
+                        .equals("https://example.com/rules.pdf?token=a%2Fb"), "first attachment uses native open_url and preserves signed query");
+                check(((ClickEvent.OpenUrl) ((StaticAction) message.actions().get(1).action().orElseThrow()).value()).uri().toString()
+                        .equals("http://example.org/image.png"), "second attachment has its own native open_url action");
+                pl.click(message.actions().getLast(), new CompoundTag()); pl.gameDialog();
+                check(true, "Back still works on a message with native URL buttons");
                 form = open(op, "mail send-multiple " + plName + " " + enName + " " + plName);
                 op.click(form.actions().getFirst(), fields("Batch distinct", false)); chat(op, "Wysłano maila. Liczba odbiorców: 2.");
                 check(true, "send-multiple deduplicates and bypasses ignore for administration mail");
@@ -131,7 +136,10 @@ public final class MailIntegrationHarness {
         } finally { bot.socket.setSoTimeout(20000); }
     }
     private static CompoundTag fields(String body, boolean attach) {
-        CompoundTag data = new CompoundTag(); data.putString("body", body); data.putString("attach", Boolean.toString(attach)); return data;
+        return fields(body, attach ? "https://example.com/attachment" : "");
+    }
+    private static CompoundTag fields(String body, String urls) {
+        CompoundTag data = new CompoundTag(); data.putString("body", body); data.putString("attachments", urls); return data;
     }
     private static String body(MultiActionDialog dialog) {
         return dialog.common().body().stream().map(part -> ((PlainMessage) part).contents().getString()).reduce("", (a, b) -> a + "\n" + b);
@@ -156,10 +164,5 @@ public final class MailIntegrationHarness {
                 catch (SocketTimeoutException expected) { }
             }
         } finally { bot.socket.setSoTimeout(20000); }
-    }
-    private static int countDiamonds(String name) throws Exception {
-        command("execute store result storage bongoutils:mail_test diamonds int 1 run clear " + name + " minecraft:diamond 0");
-        String value = command("data get storage bongoutils:mail_test diamonds");
-        return Integer.parseInt(value.substring(value.lastIndexOf(' ') + 1).strip());
     }
 }
