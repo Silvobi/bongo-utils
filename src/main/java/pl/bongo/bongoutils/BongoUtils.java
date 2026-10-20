@@ -38,6 +38,7 @@ public final class BongoUtils implements ModInitializer {
         } catch (Exception e) { throw new IllegalStateException("BongoUtils cannot read its configuration or storage", e); }
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
             IgnWhitelistCommand.register(dispatcher);
+            pl.bongo.bongoutils.social.SocialFeatures.register(dispatcher);
             dispatcher.register(Commands.literal("manageclaim").executes(c->claimUi.open(c.getSource().getPlayerOrException(),false))
                 .then(Commands.literal("global").executes(c->claimUi.open(c.getSource().getPlayerOrException(),true))));
             dispatcher.register(Commands.literal("skin").executes(context -> skinUi.open(context.getSource().getPlayerOrException())));
@@ -54,6 +55,7 @@ public final class BongoUtils implements ModInitializer {
                     }))));
         });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            if(pl.bongo.bongoutils.social.SocialFeatures.active!=null) pl.bongo.bongoutils.social.SocialFeatures.active.joined(handler.player);
             ConnectionState state = (ConnectionState) ((ListenerConnection) handler).bongo$connection();
             try {
                 var profile = handler.player.getGameProfile();
@@ -66,10 +68,17 @@ public final class BongoUtils implements ModInitializer {
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             claimUi.forget(handler.player.getUUID());
+            if(pl.bongo.bongoutils.social.SocialFeatures.active!=null) pl.bongo.bongoutils.social.SocialFeatures.active.disconnected(handler.player.getUUID());
             skinUi.disconnected(handler.player.getUUID()); changePassUi.disconnected(handler.player.getUUID());
         });
+        ServerLifecycleEvents.SERVER_STARTING.register(server->{
+            try { pl.bongo.bongoutils.social.SocialFeatures.active=new pl.bongo.bongoutils.social.SocialFeatures(server); }
+            catch(java.io.IOException e) { throw new IllegalStateException("Cannot load player statuses",e); }
+        });
+        ServerLifecycleEvents.SERVER_STOPPED.register(server->pl.bongo.bongoutils.social.SocialFeatures.active=null);
         ServerLifecycleEvents.SERVER_STARTING.register(pl.bongo.bongoutils.claims.ClaimFlags::start);
         net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server->{
+            if(pl.bongo.bongoutils.social.SocialFeatures.active!=null) pl.bongo.bongoutils.social.SocialFeatures.active.tick();
             if(pl.bongo.bongoutils.claims.ClaimFlags.active!=null) pl.bongo.bongoutils.claims.ClaimFlags.active.tick();
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(server->pl.bongo.bongoutils.claims.ClaimFlags.active=null);
