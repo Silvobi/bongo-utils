@@ -20,7 +20,7 @@ BongoUtils to Minecraft Fabric mod typu server-side - instalacja po stronie klie
    enforce-secure-profile=false
    ```
 
-UWAGA! Przy ustawieniu `enforce-secure-profile=false` czat w grze może przestać działać poprawnie. Obejście tego problemu jest łatwe - zainstaluj modyfikację (No Chat Reports)[https://modrinth.com/mod/no-chat-reports]
+UWAGA! Przy ustawieniu `enforce-secure-profile=false` czat w grze może przestać działać poprawnie. Obejście tego problemu jest łatwe - zainstaluj modyfikację [No Chat Reports](https://modrinth.com/mod/no-chat-reports)
 
 4. Uruchom serwer. Mod utworzy `config/bongoutils/`.
 5. W mieszanym trybie offline/premium możesz użyć whitelisty definujących po nickach, zamiast po UUID graczy: najpierw `/ign-whitelist add TWÓJ_NICK`, potem `/ign-whitelist on`. Jest niezależna od UUID i po włączeniu zastępuje standardową kontrolę whitelisty. Domyślnie jest wyłączona — wtedy obowiązuje zwykła whitelista Minecrafta.
