@@ -124,7 +124,7 @@ public final class SkinService {
         var builder = request(url).GET(); authorize(builder); return send(builder.build());
     }
     private void authorize(HttpRequest.Builder builder) {
-        String key = BongoUtils.config.mineSkinApiKey.strip();
+        String key = BongoUtils.config().mineSkinApiKey.strip();
         if (!key.isEmpty()) builder.header("Authorization", "Bearer " + key);
     }
     private JsonObject send(HttpRequest request) throws IOException, InterruptedException {

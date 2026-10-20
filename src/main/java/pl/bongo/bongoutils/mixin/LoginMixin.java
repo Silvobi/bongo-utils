@@ -43,7 +43,7 @@ public abstract class LoginMixin {
         if (!BongoUtils.submit(() -> {
             try {
                 UUID official = BongoUtils.skins.lookupUuid(packet.name());
-                MsaLogin.Route route = MsaLogin.route(official, packet.profileId(), BongoUtils.store.reserved(packet.name()), BongoUtils.config.allowOffline);
+                MsaLogin.Route route = MsaLogin.route(official, packet.profileId(), BongoUtils.store.reserved(packet.name()), BongoUtils.config().allowOffline);
                 boolean premiumCandidate = route == MsaLogin.Route.VERIFY_SESSION;
                 // The UUID only chooses the handshake. Only Mojang session verification grants access.
                 if (!premiumCandidate && route != MsaLogin.Route.OFFLINE) {

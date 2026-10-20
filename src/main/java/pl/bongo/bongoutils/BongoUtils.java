@@ -16,7 +16,8 @@ import java.util.concurrent.*;
 public final class BongoUtils implements ModInitializer {
     public static final Logger LOG = LoggerFactory.getLogger("BongoUtils");
     public static Store store;
-    public static Config config;
+    private static ConfigFile configFile;
+    public static Config config() { return configFile.current(); }
     public static SkinService skins;
     public static SkinUi skinUi;
     public static ChangePassUi changePassUi;
@@ -27,29 +28,12 @@ public final class BongoUtils implements ModInitializer {
         try {
             Path root = FabricLoader.getInstance().getConfigDir().resolve("bongoutils");
             Files.createDirectories(root);
-            Path file = root.resolve("config.json");
-            config = Files.exists(file) ? Store.JSON.fromJson(Files.readString(file), Config.class) : new Config();
-            if (config == null || config.mineSkinApiKey == null) throw new IllegalArgumentException("Invalid config.json");
-            if (!Files.exists(file)) Store.atomic(file, Store.JSON.toJson(config));
+            configFile = new ConfigFile(root.resolve("config.json"));
             store = new Store(root); skins = new SkinService(); skinUi = new SkinUi(); changePassUi = new ChangePassUi();
             ignWhitelist = new IgnWhitelist(root.resolve("ign-whitelist.json"));
             workers = pool(4, 32, "BongoUtils-auth"); skinWorkers = pool(2, 16, "BongoUtils-skin");
         } catch (Exception e) { throw new IllegalStateException("BongoUtils cannot read its configuration or storage", e); }
-        CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
-            IgnWhitelistCommand.register(dispatcher);
-            dispatcher.register(Commands.literal("skin").executes(context -> skinUi.open(context.getSource().getPlayerOrException())));
-            dispatcher.register(Commands.literal("changepass").requires(ChangePassUi::allowed)
-                    .executes(context -> changePassUi.open(context.getSource().getPlayerOrException())));
-            dispatcher.register(Commands.literal("bongoutils").requires(source -> source.getEntity() == null)
-                    .then(Commands.literal("resetpassword").then(Commands.argument("nick", StringArgumentType.word()).executes(context -> {
-                        String nick = StringArgumentType.getString(context, "nick");
-                        try {
-                            store.reset(nick);
-                            context.getSource().sendSuccess(() -> Component.literal("Usunięto hasło konta offline: " + nick + ". Kolejne połączenie poprosi o rejestrację."), false);
-                            return 1;
-                        } catch (Exception e) { context.getSource().sendFailure(Component.literal("Nie udało się usunąć hasła.")); return 0; }
-                    }))));
-        });
+        CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> registerCommands(dispatcher, configFile));
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             ConnectionState state = (ConnectionState) ((ListenerConnection) handler).bongo$connection();
             try {
@@ -67,6 +51,34 @@ public final class BongoUtils implements ModInitializer {
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> { workers.shutdownNow(); skinWorkers.shutdownNow(); });
         LOG.info("BongoUtils: server-only authentication dialogs and skins enabled.");
     }
+    static void registerCommands(com.mojang.brigadier.CommandDispatcher<net.minecraft.commands.CommandSourceStack> dispatcher, ConfigFile configuration) {
+        IgnWhitelistCommand.register(dispatcher);
+        dispatcher.register(Commands.literal("rules").executes(context -> RulesCommand.show(context.getSource(), configuration.current().rules)));
+        dispatcher.register(Commands.literal("skin").executes(context -> skinUi.open(context.getSource().getPlayerOrException())));
+        dispatcher.register(Commands.literal("changepass").requires(ChangePassUi::allowed)
+                .executes(context -> changePassUi.open(context.getSource().getPlayerOrException())));
+        dispatcher.register(Commands.literal("bongoutils").requires(Commands.hasPermission(Commands.LEVEL_ADMINS))
+                .then(Commands.literal("reload").executes(context -> {
+                    try {
+                        configuration.reload();
+                        context.getSource().sendSuccess(() -> Component.literal("Przeładowano config/bongoutils/config.json."), true);
+                        return 1;
+                    } catch (java.io.IOException e) {
+                        LOG.error("Cannot reload BongoUtils config.json", e);
+                        context.getSource().sendFailure(Component.literal("Nie można przeładować config.json. Poprzednia konfiguracja pozostaje aktywna; szczegóły w logu serwera."));
+                        return 0;
+                    }
+                }))
+                .then(Commands.literal("resetpassword").requires(source -> source.getEntity() == null)
+                        .then(Commands.argument("nick", StringArgumentType.word()).executes(context -> {
+                    String nick = StringArgumentType.getString(context, "nick");
+                    try {
+                        store.reset(nick);
+                        context.getSource().sendSuccess(() -> Component.literal("Usunięto hasło konta offline: " + nick + ". Kolejne połączenie poprosi o rejestrację."), false);
+                        return 1;
+                    } catch (Exception e) { context.getSource().sendFailure(Component.literal("Nie udało się usunąć hasła.")); return 0; }
+                }))));
+    }
     private static ThreadPoolExecutor pool(int count, int queue, String prefix) {
         return new ThreadPoolExecutor(count, count, 0, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(queue), runnable -> {
             Thread thread = new Thread(runnable, prefix); thread.setDaemon(true); return thread;
@@ -80,5 +92,12 @@ public final class BongoUtils implements ModInitializer {
     public static final class Config {
         public boolean allowOffline = true;
         public String mineSkinApiKey = "";
+        public Rules rules = new Rules();
+    }
+    public static final class Rules {
+        public String mode = "dialog";
+        public String url = "";
+        public String title = "Regulamin serwera";
+        public java.util.List<String> entries = java.util.List.of();
     }
 }

@@ -12,7 +12,7 @@ BongoUtils to Minecraft Fabric mod typu server-side - instalacja po stronie klie
 ## Instalacja
 
 1. Zatrzymaj serwer i wykonaj kopię świata oraz danych graczy.
-2. Umieść `BongoUtils-1.3.0.jar` i `fabric-api-0.161.0+26.3.jar` w katalogu `mods/` serwera Fabric 26.3. Przy aktualizacji usuń stary JAR BongoUtils; nie zostawiaj dwóch wersji moda. Zachowaj katalog `config/bongoutils/`.
+2. Umieść `BongoUtils-1.4.0.jar` i `fabric-api-0.161.0+26.3.jar` w katalogu `mods/` serwera Fabric 26.3. Przy aktualizacji usuń stary JAR BongoUtils; nie zostawiaj dwóch wersji moda. Zachowaj katalog `config/bongoutils/`.
 3. W `server.properties` ustaw:
 
    ```properties
@@ -137,11 +137,44 @@ Po zapisaniu skina mod automatycznie przeprowadza krótką rekonfigurację poł�
 ```json
 {
   "allowOffline": true,
-  "mineSkinApiKey": ""
+  "mineSkinApiKey": "",
+  "rules": {
+    "mode": "dialog",
+    "url": "",
+    "title": "Regulamin serwera",
+    "entries": [
+      "Szanuj innych graczy.",
+      "Nie używaj cheatów."
+    ]
+  }
 }
 ```
 
-`allowOffline=false` zezwala wyłącznie na zweryfikowane konta Mojang. Opcjonalny klucz: https://account.mineskin.org/keys. Po zmianie konfiguracji zrestartuj serwer. Klucza nie umieszczaj w publicznym repozytorium.
+`allowOffline=false` zezwala wyłącznie na zweryfikowane konta Mojang. Opcjonalny klucz: https://account.mineskin.org/keys. Klucza nie umieszczaj w publicznym repozytorium.
+
+Po edycji pliku użyj `/bongoutils reload` w grze lub `bongoutils reload` w konsoli/RCON. Komenda w grze wymaga uprawnień takich jak `/whitelist` (poziom 3 lub 4). Przeładowuje cały `config.json`, w tym regulamin, `allowOffline` i klucz MineSkin, bez restartowania serwera. Nowe ustawienia są używane przy następnych wywołaniach komend, sprawdzeniach logowania i żądaniach do MineSkin; już otwarty dialog zachowuje poprzednią treść do ponownego `/rules`. Zmiana `allowOffline` nie wyrzuca już połączonych graczy.
+
+Błędny lub brakujący plik przy przeładowaniu powoduje komunikat błędu i pozostawia całą poprzednią konfigurację aktywną. Stary config bez sekcji `rules` nadal działa: w pamięci otrzymuje domyślne ustawienia dialogu z pustą listą. Dodaj sekcję według przykładu powyżej. Nowy plik również zaczyna z pustą listą; przykładowe zasady nie są narzucane automatycznie. Whitelista IGN ma osobną komendę `/ign-whitelist reload`.
+
+## `/rules`
+
+Komenda dostępna dla każdego gracza, bez moda po stronie klienta. `rules.mode` wybiera jeden z dwóch trybów:
+
+- `"dialog"` — otwiera natywne okno z tytułem `rules.title` i numerowaną listą tekstów z `rules.entries`. Każdy element tablicy jest osobną zasadą; można użyć `\n` do podziału tekstu na wiersze. Okno zamyka przycisk **Zamknij** lub Escape. Pusta lista wyświetla informację, że regulamin nie został jeszcze ustawiony.
+- `"link"` — wysyła graczowi prywatną wiadomość z tytułem i klikalnym adresem `rules.url`. Wymagany jest poprawny adres HTTP lub HTTPS. Link otwiera standardową obsługę odnośników Minecrafta.
+
+Przykład sekcji dla linku:
+
+```json
+"rules": {
+  "mode": "link",
+  "url": "https://example.org/regulamin",
+  "title": "Regulamin serwera",
+  "entries": []
+}
+```
+
+Po zmianie trybu, adresu lub zasad wykonaj `/bongoutils reload`, a następnie `/rules`. Konsola/RCON mogą przeładować ustawienia, ale `/rules` jest komendą dla gracza.
 
 ## `/changepass`
 
@@ -191,9 +224,9 @@ Z Java 25:
 .\gradlew.bat build
 ```
 
-Na Linuxie: `bash gradlew build`. Wynik: `build/libs/BongoUtils-1.3.0.jar`. Plik `-sources.jar` jest archiwum kodu, nie modem do instalacji. Loom 1.17.12 i Gradle 9.6.0 są przypięte w projekcie. Minecraft 26.3 używa oficjalnych nazw klas i nie wymaga Yarn.
+Na Linuxie: `bash gradlew build`. Wynik: `build/libs/BongoUtils-1.4.0.jar`. Plik `-sources.jar` jest archiwum kodu, nie modem do instalacji. Loom 1.17.12 i Gradle 9.6.0 są przypięte w projekcie. Minecraft 26.3 używa oficjalnych nazw klas i nie wymaga Yarn.
 
-`build` uruchamia 22 testy dotyczące haseł, trwałości danych, normalizacji nicków, URL Discorda, sieci prywatnych, PNG, limitów, whitelisty IGN, pierwszeństwa MSA oraz zmiany i wyczyszczenia hasła. Sprawdzane są trwałość zmian po restarcie, odrzucenie starego hasła, brak nadpisania nowszego zapisu przez stary formularz, ochrona MSA, uszkodzony plik konta i rejestracja po wyczyszczeniu. Testy whitelisty obejmują duplikaty z różną wielkością liter i odrzucenie błędnego pliku bez utraty poprzedniej listy.
+`build` uruchamia 28 testów dotyczących haseł, trwałości danych, normalizacji nicków, URL Discorda, sieci prywatnych, PNG, limitów, whitelisty IGN, pierwszeństwa MSA oraz zmiany i wyczyszczenia hasła. Sprawdzane są trwałość zmian po restarcie, odrzucenie starego hasła, brak nadpisania nowszego zapisu przez stary formularz, ochrona MSA, uszkodzony plik konta i rejestracja po wyczyszczeniu. Testy whitelisty obejmują duplikaty z różną wielkością liter i odrzucenie błędnego pliku bez utraty poprzedniej listy. Testy regulaminu i konfiguracji obejmują zgodność starego configu, przełączanie trybów, klikalny URL, treść i zamykanie dialogu, rzeczywistą komendę reload w dispatcherze, uprawnienia oraz zachowanie całej poprzedniej konfiguracji po błędzie. Nie zastępują wizualnego sprawdzenia `/rules` w kliencie graficznym.
 
 Dołączony `IntegrationHarness` łączy się jako klient zwykłego protokołu Minecrafta, bez BongoUtils po stronie klienta. Na osobnym **lokalnym** serwerze testowym, z akceptacją EULA, odpowiednimi zależnościami, `server-ip=127.0.0.1`, `server-port=25579` i wyłączoną whitelistą:
 
