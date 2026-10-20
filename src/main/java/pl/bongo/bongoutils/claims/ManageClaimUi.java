@@ -96,7 +96,8 @@ public final class ManageClaimUi {
                 buttons.add(button(text(player,"Wróć do flag","Back to flags"),prefix+"back"));
             }
         }
-        var common=new CommonDialogData(Component.literal(title),Optional.empty(),true,false,DialogAction.WAIT_FOR_RESPONSE,List.of(new PlainMessage(Component.literal(body),360)),List.of());
+        // A stale token may intentionally receive no new page; never put the client in a waiting screen.
+        var common=new CommonDialogData(Component.literal(title),Optional.empty(),true,false,DialogAction.CLOSE,List.of(new PlainMessage(Component.literal(body),360)),List.of());
         player.openDialog(Holder.direct(new MultiActionDialog(common,buttons,Optional.of(button(text(player,"Zamknij","Close"),prefix+"close")),1)));
     }
     public void submit(ServerPlayer player,ServerboundCustomClickActionPacket packet) {

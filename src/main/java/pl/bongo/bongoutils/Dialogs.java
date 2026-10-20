@@ -20,14 +20,19 @@ public final class Dialogs {
                 Optional.of(new CustomAll(id(action), Optional.empty())));
     }
     private static CommonDialogData common(String title, String message, List<Input> inputs, boolean escape) {
+        return common(title, message, inputs, escape, DialogAction.CLOSE);
+    }
+    private static CommonDialogData common(String title, String message, List<Input> inputs, boolean escape, DialogAction afterAction) {
         return new CommonDialogData(Component.literal(title), Optional.empty(), escape, false,
-                DialogAction.WAIT_FOR_RESPONSE, List.of(new PlainMessage(Component.literal(message), 320)), inputs);
+                afterAction, List.of(new PlainMessage(Component.literal(message), 320)), inputs);
     }
     public static Holder<Dialog> auth(String language, boolean registration, String token, String message) {
         List<Input> fields = registration ? List.of(text("password", I18n.t(language,"auth.password.label"), 128),
                 text("repeat", I18n.t(language,"auth.repeat.label"), 128)) : List.of(text("password", I18n.t(language,"auth.enter.label"), 128));
         return Holder.direct(new MultiActionDialog(common(registration ? I18n.t(language,"auth.register") : I18n.t(language,"auth.login"),
-                message, fields, false), List.of(button(registration ? I18n.t(language,"auth.register.button") : I18n.t(language,"auth.login.button"), "auth/" + token)),
+                // Keep the login form visible while hashing or rate-limiting a repeated click.
+                // The configuration task still gates entry and clears it after successful authentication.
+                message, fields, false, DialogAction.NONE), List.of(button(registration ? I18n.t(language,"auth.register.button") : I18n.t(language,"auth.login.button"), "auth/" + token)),
                 Optional.of(button(I18n.t(language,"auth.disconnect"), "quit/" + token)), 1));
     }
     public static Holder<Dialog> skinMenu(String language, String token) {
