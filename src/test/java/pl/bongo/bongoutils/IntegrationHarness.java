@@ -71,6 +71,9 @@ public final class IntegrationHarness {
         int compression = -1; boolean disconnected, challengeAuthenticated;
         String disconnectReason;
         Bot(String name, UUID uuid) throws Exception {
+            this(name,uuid,"pl_pl");
+        }
+        Bot(String name, UUID uuid, String language) throws Exception {
             socket.setSoTimeout(20000);
             send(new ClientIntentionPacket(SharedConstants.getProtocolVersion(), "localhost", port, ClientIntent.LOGIN));
             outbound = LoginProtocols.SERVERBOUND.codec();
@@ -87,7 +90,11 @@ public final class IntegrationHarness {
                 else if (packet instanceof ClientboundLoginDisconnectPacket kick) { disconnected = true; disconnectReason = kick.reason().getString(); return; }
                 else if (packet instanceof ClientboundLoginFinishedPacket) {
                     send(ServerboundLoginAcknowledgedPacket.INSTANCE);
-                    inbound = ConfigurationProtocols.CLIENTBOUND.codec(); outbound = ConfigurationProtocols.SERVERBOUND.codec(); return;
+                    inbound = ConfigurationProtocols.CLIENTBOUND.codec(); outbound = ConfigurationProtocols.SERVERBOUND.codec();
+                    send(new ServerboundClientInformationPacket(new net.minecraft.server.level.ClientInformation(language,2,
+                            net.minecraft.world.entity.player.ChatVisiblity.FULL,true,127,net.minecraft.world.entity.HumanoidArm.RIGHT,
+                            false,true,net.minecraft.server.level.ParticleStatus.ALL)));
+                    return;
                 }
             }
         }

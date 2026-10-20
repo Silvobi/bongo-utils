@@ -48,7 +48,7 @@ Gracz mający starsze konto offline pod nickiem zajętym przez MSA również zos
 
 ### Tożsamość i istniejący serwer
 
-Offline UUID jest wyliczany z `OfflinePlayer:<nick małymi literami>`. Dzięki temu `Bongo` i `bongo` oznaczają jedno konto. Może to różnić się od UUID starego serwera offline, który liczył UUID z oryginalną wielkością liter. Przed użyciem na istniejącym serwerze trzeba świadomie przenieść dane graczy, whitelistę, uprawnienia i banlistę. Mod nie migruje istniejących UUID ani baz innych modów logowania.
+Offline UUID jest wyliczany z `OfflinePlayer:<nick małymi literami>`. Dzięki temu `Bongo` i `bongo` oznaczają jedno konto. Może to różnić się od UUID starego serwera offline, który liczył UUID z oryginalną wielkością liter. Przed użyciem na istniejącym serwerze trzeba świadomie przenieść dane graczy, whitelistę, uprawnienia i banlistę. Mod nie migruje automatycznie istniejących UUID ani baz innych modów logowania. Komendy ręcznej migracji znanych kont opisuje [osobna dokumentacja](social-tools.md).
 
 Obsługiwane są bezpośrednie połączenia z serwerem. Integracje Velocity/BungeeCord/Floodgate, alternatywne usługi uwierzytelniania i inne mody przechwytujące logowanie nie były implementowane ani testowane.
 

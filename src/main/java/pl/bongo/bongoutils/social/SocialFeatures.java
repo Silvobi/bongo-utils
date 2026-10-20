@@ -41,7 +41,7 @@ public final class SocialFeatures {
     }
     private void changed(ServerPlayer p) {
         String key=activity(p).afk()?"afk.on":"afk.off",name=p.getGameProfile().name();
-        server.getPlayerList().broadcastSystemMessage(Component.literal(I18n.t((String)null,key,name)).withStyle(ChatFormatting.GRAY),
+        if (!pl.bongo.bongoutils.Social.hidden(p.getUUID())) server.getPlayerList().broadcastSystemMessage(Component.literal(I18n.t((String)null,key,name)).withStyle(ChatFormatting.GRAY),
             recipient->Component.literal(I18n.t(recipient,key,name)).withStyle(ChatFormatting.GRAY),false);
         refresh(p);
     }
@@ -87,15 +87,16 @@ public final class SocialFeatures {
     public void conversation(CommandSourceStack source,Collection<ServerPlayer> targets,PlayerChatMessage message) {
         if(!(source.getEntity() instanceof ServerPlayer sender)) return;
         for(var target:targets) {
-            if(sender.getUUID().equals(target.getUUID()) || (source.shouldFilterMessageTo(target) && message.isFullyFiltered())) continue;
+            if(pl.bongo.bongoutils.Social.full(sender) || pl.bongo.bongoutils.Social.full(target) || pl.bongo.bongoutils.Social.blocked(sender.getUUID(),target.getUUID()) || sender.getUUID().equals(target.getUUID()) || (source.shouldFilterMessageTo(target) && message.isFullyFiltered())) continue;
             replies.put(sender.getUUID(),target.getUUID());replies.put(target.getUUID(),sender.getUUID());
         }
     }
     public PlayerChatMessage chat(ServerPlayer recipient,PlayerChatMessage message,ChatType.Bound type) {
         // Only public player chat. A filtered body must never be reconstructed from its unfiltered decoration.
+        if(!pl.bongo.bongoutils.Social.chatAllowed(recipient,message.sender())) return message;
         if(!type.chatType().is(ChatType.CHAT) || !message.filterMask().isEmpty()) return message;
         var online=new HashMap<String,UUID>();
-        for(var p:server.getPlayerList().getPlayers()) online.put(p.getGameProfile().name().toLowerCase(Locale.ROOT),p.getUUID());
+        for(var p:server.getPlayerList().getPlayers()) if(!pl.bongo.bongoutils.Social.hidden(p.getUUID()) || p==recipient) online.put(p.getGameProfile().name().toLowerCase(Locale.ROOT),p.getUUID());
         boolean[] found={false},ping={false};var result=Component.empty();
         message.decoratedContent().visit((style,text)->{
             var matcher=MENTION.matcher(text);int end=0;

@@ -29,8 +29,8 @@ Dostępne po zainstalowaniu odpowiednich aktualizacji:
 
 | Flaga | Mod | Domyślnie |
 | --- | --- | --- |
-| Publiczne pady teleportacyjne | BongosTeleports **1.5.0** | Wyłączone; Access Trust nadal pozwala używać prywatnych padów |
-| Dostęp członków klanu | BongosCommunityClans **1.1.1** | **Build Trust**, obejmujący skrzynie i podstawowy dostęp |
+| Publiczne pady teleportacyjne | BongosTeleports **1.6.0** | Wyłączone; Access Trust nadal pozwala używać prywatnych padów |
+| Dostęp członków klanu | BongosCommunityClans **1.1.2** | **Build Trust**, obejmujący skrzynie i podstawowy dostęp |
 
 Dostęp klanowy ma poziomy `off`, `access`, `container`, `build`. Nie dziedziczy się automatycznie do ograniczonych lub zagnieżdżonych poddziałek; wymagają one własnego lokalnego ustawienia. Panel pokazuje wtedy „Wyłączone • brak dziedziczenia”. Jawne odmowy GP3D nadal blokują dodatkowe prawo klanowe. Publiczne pady nie otwierają TPA ani nie dają prawa zarządzania padem.
 

@@ -22,7 +22,7 @@ public final class WhitelistIntegrationHarness {
         try {
             checkRejected(name, "native UUID whitelist rejects the offline test name before IGN mode");
             String added = command("ign-whitelist add " + name + " " + another);
-            IntegrationHarness.check(added.contains("Dodano 2"), "console adds multiple offline IGN names without profile resolution");
+            IntegrationHarness.check(added.contains("Added 2"), "console adds multiple offline IGN names without profile resolution");
             command("ign-whitelist on");
             IntegrationHarness.check(command("ign-whitelist list").contains(name), "list contains saved IGN");
             checkRejected("UnlistedTest", "IGN gate rejects an unlisted name");

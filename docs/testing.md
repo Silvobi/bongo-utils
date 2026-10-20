@@ -10,7 +10,7 @@ Z Java 25:
 .\gradlew.bat build
 ```
 
-Na Linuxie: `bash gradlew build`. Wynik: `build/libs/BongoUtils-1.6.2.jar`. Plik `-sources.jar` jest archiwum kodu, nie modem do instalacji. Loom 1.17.12 i Gradle 9.6.0 są przypięte w projekcie. Minecraft 26.3 używa oficjalnych nazw klas i nie wymaga Yarn.
+Na Linuxie: `bash gradlew build`. Wynik: `build/libs/BongoUtils-1.7.0.jar`. Plik `-sources.jar` jest archiwum kodu, nie modem do instalacji. Loom 1.17.12 i Gradle 9.6.0 są przypięte w projekcie. Minecraft 26.3 używa oficjalnych nazw klas i nie wymaga Yarn.
 
 `build` uruchamia 46 testów dotyczących haseł, trwałości danych, normalizacji nicków, URL Discorda, sieci prywatnych, PNG, limitów, whitelisty IGN, pierwszeństwa MSA oraz zmiany i wyczyszczenia hasła. Sprawdzane są trwałość zmian po restarcie, odrzucenie starego hasła, brak nadpisania nowszego zapisu przez stary formularz, ochrona MSA, uszkodzony plik konta i rejestracja po wyczyszczeniu. Testy whitelisty obejmują duplikaty z różną wielkością liter i odrzucenie błędnego pliku bez utraty poprzedniej listy. Testy regulaminu i konfiguracji obejmują zgodność starego configu, przełączanie trybów, klikalny URL, treść i zamykanie dialogu, rzeczywistą komendę reload w dispatcherze, uprawnienia oraz zachowanie całej poprzedniej konfiguracji po błędzie. Nie zastępują wizualnego sprawdzenia `/rules` w kliencie graficznym.
 
@@ -59,3 +59,7 @@ Test używa rzeczywistych odpowiedzi Mojang. Prawidłowe wejście kontem MSA wra
 ## Testy wspólne
 
 Testy panelu GP3D, funkcji społecznościowych i lokalizacji uruchamia się z [repozytorium BongosTeleports](https://github.com/Silvobi/bongos-teleports), na osobnym środowisku `verification-allmods`. Zadania: `sharedClaimsTest`, `socialFeaturesTest`, `utilsLocalizationTest`. Szczegóły przygotowania i ograniczenia opisuje tamtejszy README i dokumentacja testów. Testowy `teleports-verification.jar` nie jest częścią moda produkcyjnego.
+
+## Przywrócone funkcje i regresja dialogów
+
+`mailIntegrationTest`, `restIntegrationTest` i `languageTest` obsługują osobny, uruchomiony serwer testowy z lokalnym RCON (parametry takie jak w poprzednich przykładach). Jednostkowe testy obejmują także skrzynki, URL, zapis i migrację. Z projektu Teleports `dialogLifecycleTest` sprawdza wszystkie używane dialogi, pocztę offline po restarcie, współdziałanie statusów z ignorowaniem i ochronę TPA.

@@ -1,14 +1,14 @@
-# BongoUtils 1.6.2
+# BongoUtils 1.7.0
 
-Serwerowy mod Fabric dla **Minecraft Java 26.3**: logowanie offline/MSA, skiny, whitelista IGN, regulamin, AFK i statusy, wzmianki na czacie oraz panel działek GP3D. Gracze korzystają z klienta vanilla — bez dodatkowego moda i paczki zasobów.
+Serwerowy mod Fabric dla **Minecraft Java 26.3**: logowanie offline/MSA, skiny, whitelista IGN, poczta offline, ignorowanie i vanish, siadanie/leżenie, regulamin, AFK i statusy, wzmianki oraz panel działek GP3D. Gracze korzystają z klienta vanilla — bez dodatkowego moda i paczki zasobów.
 
 ## Wymagania i instalacja
 
 - **Java 25**, Fabric Loader **0.19.5+**, Fabric API **0.161.0+26.3**.
-- Opcjonalnie: **GriefPrevention3D 19.0.0** (uniwersalny JAR), [BongosTeleports 1.5.0](https://github.com/Silvobi/bongos-teleports) i [BongosCommunityClans 1.1.1](https://github.com/Silvobi/bongos-community-clans).
+- Opcjonalnie: **GriefPrevention3D 19.0.0** (uniwersalny JAR), [BongosTeleports 1.6.0](https://github.com/Silvobi/bongos-teleports) i [BongosCommunityClans 1.1.2](https://github.com/Silvobi/bongos-community-clans).
 
 1. Zatrzymaj serwer i wykonaj kopię świata oraz `config/bongoutils/`.
-2. Włóż `BongoUtils-1.6.2.jar` i Fabric API do `mods/`. Usuń poprzedni JAR BongoUtils; zachowaj konfigurację i dane.
+2. Włóż `BongoUtils-1.7.0.jar` i Fabric API do `mods/`. Usuń poprzedni JAR BongoUtils; zachowaj konfigurację i dane.
 3. W `server.properties` ustaw:
 
    ```properties
@@ -24,6 +24,17 @@ Mod wybiera weryfikację sesji Mojang lub szyfrowane logowanie offline według r
 
 | Komenda | Działanie / wymagania |
 | --- | --- |
+| `/mail` | Otwiera własne nieprzeczytane wiadomości |
+| `/mail send <nick>` | Mail do znanego gracza, także offline; natywny formularz |
+| `/mail read new\|all` | Własna skrzynka nieprzeczytanych lub wszystkich wiadomości |
+| `/mail send *` | Ważna poczta do znanych kont; gracz z OP 3+ |
+| `/mail send-multiple <nick> <nick> ...` | Ważna poczta do wskazanych kont; gracz z OP 3+ |
+| `/sit`, `/lay` | Przełącza siadanie lub leżenie; ruch przerywa pozę |
+| `/wiki` | Dialog z linkiem do wiki serwera |
+| `/ignore [nick]`, `/ingore [nick]` | Lista lub przełączenie obustronnego ignorowania |
+| `/vanish [fake]`, `/semi-vanish` | Tryby widoczności; OP 3+ |
+| `/bongoutils migrate move\|swap\|override <z> <do>` | Ręczna migracja danych kont; OP 3+ lub konsola |
+| `bongoutils visibility <nick> visible\|semi\|vanish` | Odzyskanie widoczności konta; wyłącznie konsola/RCON |
 | `/skin` | Dialog wyboru skina z IGN lub adresu HTTPS PNG |
 | `/rules` | Regulamin w dialogu lub wiadomości z klikalnym linkiem |
 | `/afk` | Ręczne przełączenie AFK; działa też automatycznie po 5 minutach bez ruchu |
@@ -40,6 +51,18 @@ Mod wybiera weryfikację sesji Mojang lub szyfrowane logowanie offline według r
 | `bongoutils resetpassword <nick>` | Reset hasła offline, **wyłącznie konsola/RCON** |
 
 Zmiana hasła nie dotyczy kont MSA. Formularze haseł są dostępne w vanilla, ale **pola nie maskują wpisywanych znaków**. Szczegóły logowania, uprawnień, limitów i migracji starszych UUID: [dokumentacja uwierzytelniania](docs/authentication.md).
+
+## Poczta, widoczność i pozostałe narzędzia
+
+`/mail` obsługuje konta offline, wielowierszowe formularze, listy z podziałem na strony i trwały stan przeczytania. Operatorzy mogą wysyłać ważne ogłoszenia i dołączać adresy URL. Zwykła poczta respektuje ignorowanie i vanish. [Komendy, limity i zapis poczty](docs/mail.md).
+
+`/ignore` działa w obie strony dla czatu, prywatnych wiadomości, poczty i TPA. Pełny `/vanish` ukrywa wpis TAB i postać; `/semi-vanish` ukrywa wpis i podpowiedzi, pozostawiając widoczną postać. Tryby są trwałe. [Zasady widoczności, maskowania Spectator i migracji kont](docs/social-tools.md).
+
+`/sit` i `/lay` są tymczasowymi pozami vanilla, bez zmiany respawnu ani głosowania nad nocą. Ruch, skok, obrażenia, teleportacja lub niebezpieczne podłoże przerywają pozę. `/wiki` otwiera okno z odnośnikiem do wiki.
+
+## Poprawka okien dialogowych
+
+W 1.7.0 logowanie zachowuje formularz podczas przetwarzania, a okna skinów, haseł, poczty i flag nie przełączają klienta na „Oczekiwanie na serwer”. Przycisk Zamknij w skinach i wiki działa także bez pakietu odpowiedzi. Usuwanie klanu korzysta z poprawki w Clans 1.1.2. Serwer nadal weryfikuje tokeny, uprawnienia i zakończenie logowania. [Lista okien, przyczyn i poprawek](docs/dialog-audit.md).
 
 ## AFK, statusy i wzmianki
 
@@ -68,8 +91,8 @@ Lokalne ustawienie rodzica nie przenosi się automatycznie na poddziałkę. Opcj
 | Flaga | Dostawca | Domyślna polityka |
 | --- | --- | --- |
 | Eksplozje, eksplozje Withera, PvP, alerty granic | GP3D | Według konfiguracji i uprawnień GP3D |
-| Publiczne pady teleportacyjne | BongosTeleports 1.5.0 | Wyłączone; nadal działa Access Trust |
-| Dostęp członków klanu | BongosCommunityClans 1.1.1 | `build`: budowanie, skrzynie i podstawowy dostęp |
+| Publiczne pady teleportacyjne | BongosTeleports 1.6.0 | Wyłączone; nadal działa Access Trust |
+| Dostęp członków klanu | BongosCommunityClans 1.1.2 | `build`: budowanie, skrzynie i podstawowy dostęp |
 
 Poziomy dostępu klanu: `off`, `access`, `container`, `build`. Ograniczone i zagnieżdżone poddziałki wymagają własnego lokalnego włączenia. Build Trust nie daje Manage Trust ani prawa zarządzania flagami.
 
@@ -107,7 +130,9 @@ Po edycji wykonaj `/bongoutils reload`. Błędny lub brakujący plik zachowuje o
 
 Język klienta `pl`, `pl_*` lub `pl-*` wybiera polski; inne lub brakujące wartości wybierają angielski. Brak polskiego klucza także korzysta z angielskiego. Dotyczy to własnych komunikatów, dialogów, ogłoszeń AFK per odbiorca i błędów.
 
-Logowanie używa języka przekazanego przed wejściem do świata. Wcześniejsze odrzucenie połączenia, zanim klient przekaże język, oraz konsola/RCON korzystają z angielskiego. Zmiana języka działa dla kolejnych komunikatów i ponownie otwartych okien. Nicki, własne statusy i zasady administratora pozostają treścią użytkownika; regulamin tłumaczy się przez `rules.en`.
+Logowanie używa języka przekazanego przed wejściem do świata. Wcześniejsze odrzucenie połączenia, zanim klient przekaże język, oraz większość komunikatów konsoli/RCON korzystają z angielskiego. Starsze komunikaty administracyjne `migrate` i konsolowego `visibility` zachowują polski tekst. Zmiana języka działa dla kolejnych komunikatów i ponownie otwartych okien. Nicki, własne statusy i zasady administratora pozostają treścią użytkownika; regulamin tłumaczy się przez `rules.en`.
+
+Komunikaty przywróconych funkcji poczty i narzędzi społecznościowych znajdują się dodatkowo w `src/main/resources/bongoutils/lang/`.
 
 Katalogi tłumaczeń: [`pl_pl.json`](src/main/resources/assets/bongoutils/lang/pl_pl.json), [`en_us.json`](src/main/resources/assets/bongoutils/lang/en_us.json).
 
@@ -115,7 +140,7 @@ Katalogi tłumaczeń: [`pl_pl.json`](src/main/resources/assets/bongoutils/lang/p
 
 | Lokalizacja | Zawartość |
 | --- | --- |
-| `config/bongoutils/` | Konfiguracja, hashe kont offline, rejestracja MSA, whitelista IGN, zapis i cache skinów |
+| `config/bongoutils/` | Konfiguracja, konta, rejestracja MSA, whitelista IGN, skiny, `social.json`, `mail.json`, kopie migracji |
 | `<świat>/bongo-statuses.json` | Własne statusy według UUID |
 | `<świat>/bongo-claim-flags.json` i `.bak` | Domyślne właścicieli, lokalne wyjątki i informacje o migracji |
 
@@ -123,7 +148,7 @@ Zachowaj cały katalog konfiguracji i świat. Aktualizacja wymaga podmiany jedne
 
 ## Budowanie i weryfikacja
 
-Z JDK 25: `bash gradlew build` na Linuxie lub `gradlew.bat build` na Windowsie. Wynik: `build/libs/BongoUtils-1.6.2.jar`. `-sources.jar` zawiera kod źródłowy.
+Z JDK 25: `bash gradlew build` na Linuxie lub `gradlew.bat build` na Windowsie. Wynik: `build/libs/BongoUtils-1.7.0.jar`. `-sources.jar` zawiera kod źródłowy.
 
 Testy jednostkowe uruchamia `build`. Dostępne są również testy protokołu logowania, whitelisty i zmiany haseł oraz wspólne testy GP3D, AFK i PL/EN w repozytorium Teleports. [Instrukcje testów](docs/testing.md).
 

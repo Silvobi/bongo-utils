@@ -19,6 +19,7 @@ public abstract class CommonListenerMixin implements pl.bongo.bongoutils.Listene
             BongoUtils.claimUi.submit(game.player, packet);
             BongoUtils.skinUi.submit(game.player, packet);
             BongoUtils.changePassUi.submit(game.player, packet);
+            BongoUtils.mailUi.submit(game.player, packet);
         }
     }
 }
