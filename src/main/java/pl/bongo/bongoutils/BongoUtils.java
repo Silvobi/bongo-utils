@@ -21,6 +21,7 @@ public final class BongoUtils implements ModInitializer {
     public static SkinUi skinUi;
     public static ChangePassUi changePassUi;
     public static IgnWhitelist ignWhitelist;
+    public static final pl.bongo.bongoutils.claims.ManageClaimUi claimUi=new pl.bongo.bongoutils.claims.ManageClaimUi();
     public static final LoginLimits limits = new LoginLimits();
     private static ThreadPoolExecutor workers, skinWorkers;
     public void onInitialize() {
@@ -37,6 +38,8 @@ public final class BongoUtils implements ModInitializer {
         } catch (Exception e) { throw new IllegalStateException("BongoUtils cannot read its configuration or storage", e); }
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
             IgnWhitelistCommand.register(dispatcher);
+            dispatcher.register(Commands.literal("manageclaim").executes(c->claimUi.open(c.getSource().getPlayerOrException(),false))
+                .then(Commands.literal("global").executes(c->claimUi.open(c.getSource().getPlayerOrException(),true))));
             dispatcher.register(Commands.literal("skin").executes(context -> skinUi.open(context.getSource().getPlayerOrException())));
             dispatcher.register(Commands.literal("changepass").requires(ChangePassUi::allowed)
                     .executes(context -> changePassUi.open(context.getSource().getPlayerOrException())));
@@ -62,8 +65,14 @@ public final class BongoUtils implements ModInitializer {
             }
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            claimUi.forget(handler.player.getUUID());
             skinUi.disconnected(handler.player.getUUID()); changePassUi.disconnected(handler.player.getUUID());
         });
+        ServerLifecycleEvents.SERVER_STARTING.register(pl.bongo.bongoutils.claims.ClaimFlags::start);
+        net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server->{
+            if(pl.bongo.bongoutils.claims.ClaimFlags.active!=null) pl.bongo.bongoutils.claims.ClaimFlags.active.tick();
+        });
+        ServerLifecycleEvents.SERVER_STOPPED.register(server->pl.bongo.bongoutils.claims.ClaimFlags.active=null);
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> { workers.shutdownNow(); skinWorkers.shutdownNow(); });
         LOG.info("BongoUtils: server-only authentication dialogs and skins enabled.");
     }
