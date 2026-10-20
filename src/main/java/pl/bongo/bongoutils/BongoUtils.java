@@ -40,11 +40,11 @@ public final class BongoUtils implements ModInitializer {
             ConnectionState state = (ConnectionState) ((ListenerConnection) handler).bongo$connection();
             try {
                 var profile = handler.player.getGameProfile();
-                Component welcome = MsaLogin.registerJoined(store, profile.name(), profile.id(), state.bongo$verified());
+                Component welcome = MsaLogin.registerJoined(store, profile.name(), profile.id(), state.bongo$verified(), I18n.language(handler.player));
                 if (welcome != null) handler.player.sendSystemMessage(welcome);
             } catch (java.io.IOException e) {
                 LOG.error("Cannot persist verified MSA registration", e);
-                handler.disconnect(Component.literal("Błąd danych BongoUtils. Skontaktuj się z administratorem."));
+                handler.disconnect(Component.literal(I18n.t(handler.player,"data.error")));
             }
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
@@ -79,11 +79,11 @@ public final class BongoUtils implements ModInitializer {
                 .then(Commands.literal("reload").executes(context -> {
                     try {
                         configuration.reload();
-                        context.getSource().sendSuccess(() -> Component.literal("Przeładowano config/bongoutils/config.json."), true);
+                        context.getSource().sendSuccess(() -> Component.literal(I18n.t(context.getSource(),"reload.ok")), true);
                         return 1;
                     } catch (java.io.IOException e) {
                         LOG.error("Cannot reload BongoUtils config.json", e);
-                        context.getSource().sendFailure(Component.literal("Nie można przeładować config.json. Poprzednia konfiguracja pozostaje aktywna; szczegóły w logu serwera."));
+                        context.getSource().sendFailure(Component.literal(I18n.t(context.getSource(),"reload.error")));
                         return 0;
                     }
                 }))
@@ -92,9 +92,9 @@ public final class BongoUtils implements ModInitializer {
                     String nick = StringArgumentType.getString(context, "nick");
                     try {
                         store.reset(nick);
-                        context.getSource().sendSuccess(() -> Component.literal("Usunięto hasło konta offline: " + nick + ". Kolejne połączenie poprosi o rejestrację."), false);
+                        context.getSource().sendSuccess(() -> Component.literal(I18n.t(context.getSource(),"reset.ok",nick)), false);
                         return 1;
-                    } catch (Exception e) { context.getSource().sendFailure(Component.literal("Nie udało się usunąć hasła.")); return 0; }
+                    } catch (Exception e) { context.getSource().sendFailure(Component.literal(I18n.t(context.getSource(),"reset.error"))); return 0; }
                 }))));
     }
     private static ThreadPoolExecutor pool(int count, int queue, String prefix) {
@@ -112,10 +112,15 @@ public final class BongoUtils implements ModInitializer {
         public String mineSkinApiKey = "";
         public Rules rules = new Rules();
     }
+    public static final class RuleTranslation {
+        public String title, url;
+        public java.util.List<String> entries;
+    }
     public static final class Rules {
         public String mode = "dialog";
         public String url = "";
         public String title = "Regulamin serwera";
         public java.util.List<String> entries = java.util.List.of();
+        public RuleTranslation en;
     }
 }

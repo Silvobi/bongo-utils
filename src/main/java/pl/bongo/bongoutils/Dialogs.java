@@ -23,42 +23,42 @@ public final class Dialogs {
         return new CommonDialogData(Component.literal(title), Optional.empty(), escape, false,
                 DialogAction.WAIT_FOR_RESPONSE, List.of(new PlainMessage(Component.literal(message), 320)), inputs);
     }
-    public static Holder<Dialog> auth(boolean registration, String token, String message) {
-        List<Input> fields = registration ? List.of(text("password", "Hasło (8–128 znaków)", 128),
-                text("repeat", "Powtórz hasło", 128)) : List.of(text("password", "Podaj hasło", 128));
-        return Holder.direct(new MultiActionDialog(common(registration ? "BongoUtils • Rejestracja" : "BongoUtils • Logowanie",
-                message, fields, false), List.of(button(registration ? "Zarejestruj" : "Zaloguj", "auth/" + token)),
-                Optional.of(button("Rozłącz", "quit/" + token)), 1));
+    public static Holder<Dialog> auth(String language, boolean registration, String token, String message) {
+        List<Input> fields = registration ? List.of(text("password", I18n.t(language,"auth.password.label"), 128),
+                text("repeat", I18n.t(language,"auth.repeat.label"), 128)) : List.of(text("password", I18n.t(language,"auth.enter.label"), 128));
+        return Holder.direct(new MultiActionDialog(common(registration ? I18n.t(language,"auth.register") : I18n.t(language,"auth.login"),
+                message, fields, false), List.of(button(registration ? I18n.t(language,"auth.register.button") : I18n.t(language,"auth.login.button"), "auth/" + token)),
+                Optional.of(button(I18n.t(language,"auth.disconnect"), "quit/" + token)), 1));
     }
-    public static Holder<Dialog> skinMenu(String token) {
-        return Holder.direct(new MultiActionDialog(common("BongoUtils • Zmiana skina", "Wybierz źródło skina.", List.of(), true),
-                List.of(button("Nick (IGN)", "skin_ign/" + token), button("Adres URL PNG", "skin_url/" + token)),
-                Optional.of(new ActionButton(new CommonButtonData(Component.literal("Zamknij"), 150), Optional.empty())), 2));
+    public static Holder<Dialog> skinMenu(String language, String token) {
+        return Holder.direct(new MultiActionDialog(common(I18n.t(language,"skin.title"), I18n.t(language,"skin.choose"), List.of(), true),
+                List.of(button(I18n.t(language,"skin.ign"), "skin_ign/" + token), button(I18n.t(language,"skin.url"), "skin_url/" + token)),
+                Optional.of(new ActionButton(new CommonButtonData(Component.literal(I18n.t(language,"close")), 150), Optional.empty())), 2));
     }
-    public static Holder<Dialog> skinForm(boolean url, String token, String error) {
-        var fields = url ? List.of(text("source", "URL obrazu PNG (również link z Discorda)", 2048),
-                new Input("slim", new net.minecraft.server.dialog.input.BooleanInput(Component.literal("Wąskie ramiona (Alex)"), false, "true", "false")))
-                : List.of(text("source", "Nick gracza z kontem Minecraft", 16));
-        return Holder.direct(new MultiActionDialog(common("BongoUtils • " + (url ? "Skin z URL" : "Skin z nicku"), error,
-                fields, true), List.of(button("Ustaw skin", (url ? "skin_save_url/" : "skin_save_ign/") + token)),
-                Optional.of(button("Wróć", "skin_back/" + token)), 1));
+    public static Holder<Dialog> skinForm(String language, boolean url, String token, String error) {
+        var fields = url ? List.of(text("source", I18n.t(language,"skin.url.label"), 2048),
+                new Input("slim", new net.minecraft.server.dialog.input.BooleanInput(Component.literal(I18n.t(language,"skin.slim")), false, "true", "false")))
+                : List.of(text("source", I18n.t(language,"skin.ign.label"), 16));
+        return Holder.direct(new MultiActionDialog(common("BongoUtils • " + (url ? I18n.t(language,"skin.url.title") : I18n.t(language,"skin.ign.title")), error,
+                fields, true), List.of(button(I18n.t(language,"skin.apply"), (url ? "skin_save_url/" : "skin_save_ign/") + token)),
+                Optional.of(button(I18n.t(language,"back"), "skin_back/" + token)), 1));
     }
-    public static Holder<Dialog> changePassNick(String token, String message) {
-        return Holder.direct(new MultiActionDialog(common("BongoUtils • Zmiana hasła", message,
-                List.of(text("nick", "Nick gracza (IGN)", 16)), true),
-                List.of(button("Sprawdź konto", "changepass_lookup/" + token)),
-                Optional.of(button("Zamknij", "changepass_cancel/" + token)), 1));
+    public static Holder<Dialog> changePassNick(String language, String token, String message) {
+        return Holder.direct(new MultiActionDialog(common(I18n.t(language,"password.title"), message,
+                List.of(text("nick", I18n.t(language,"password.nick"), 16)), true),
+                List.of(button(I18n.t(language,"password.check"), "changepass_lookup/" + token)),
+                Optional.of(button(I18n.t(language,"close"), "changepass_cancel/" + token)), 1));
     }
-    public static Holder<Dialog> changePassEdit(String token, String target, String message) {
-        return Holder.direct(new MultiActionDialog(common("BongoUtils • Hasło konta " + target, message,
-                List.of(text("password", "Nowe hasło (8–128 znaków)", 128), text("repeat", "Powtórz nowe hasło", 128)), true),
-                List.of(button("Zmień hasło", "changepass_save/" + token), button("Wyczyść hasło", "changepass_clear/" + token)),
-                Optional.of(button("Wróć", "changepass_back/" + token)), 2));
+    public static Holder<Dialog> changePassEdit(String language, String token, String target, String message) {
+        return Holder.direct(new MultiActionDialog(common(I18n.t(language,"password.account",target), message,
+                List.of(text("password", I18n.t(language,"password.new.label"), 128), text("repeat", I18n.t(language,"password.repeat.label"), 128)), true),
+                List.of(button(I18n.t(language,"password.change"), "changepass_save/" + token), button(I18n.t(language,"password.clear"), "changepass_clear/" + token)),
+                Optional.of(button(I18n.t(language,"back"), "changepass_back/" + token)), 2));
     }
-    public static Holder<Dialog> changePassClear(String token, String target) {
-        return Holder.direct(new MultiActionDialog(common("BongoUtils • Wyczyść hasło",
-                "Czy wyczyścić hasło konta " + target + "? Konto zostanie rozłączone. Przy następnym połączeniu osoba używająca tego IGN będzie mogła zarejestrować nowe hasło.", List.of(), true),
-                List.of(button("Tak, wyczyść", "changepass_confirm/" + token)),
-                Optional.of(button("Anuluj", "changepass_edit/" + token)), 1));
+    public static Holder<Dialog> changePassClear(String language, String token, String target) {
+        return Holder.direct(new MultiActionDialog(common(I18n.t(language,"password.clear.title"),
+                I18n.t(language,"password.confirm",target), List.of(), true),
+                List.of(button(I18n.t(language,"password.yes"), "changepass_confirm/" + token)),
+                Optional.of(button(I18n.t(language,"cancel"), "changepass_edit/" + token)), 1));
     }
 }

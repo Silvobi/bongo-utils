@@ -13,6 +13,7 @@ import net.minecraft.sounds.*;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.level.storage.LevelResource;
 import pl.bongo.bongoutils.BongoUtils;
+import pl.bongo.bongoutils.I18n;
 import pl.bongo.bongoutils.mixin.MsgCommandAccessor;
 import java.io.IOException;
 import java.util.*;
@@ -39,7 +40,9 @@ public final class SocialFeatures {
             if(activity(p).sample(p.level().dimension(),p.getX(),p.getY(),p.getZ(),now)) changed(p);
     }
     private void changed(ServerPlayer p) {
-        server.getPlayerList().broadcastSystemMessage(Component.literal(p.getGameProfile().name()+(activity(p).afk()?" jest teraz AFK.":" nie jest już AFK.")).withStyle(ChatFormatting.GRAY),false);
+        String key=activity(p).afk()?"afk.on":"afk.off",name=p.getGameProfile().name();
+        server.getPlayerList().broadcastSystemMessage(Component.literal(I18n.t((String)null,key,name)).withStyle(ChatFormatting.GRAY),
+            recipient->Component.literal(I18n.t(recipient,key,name)).withStyle(ChatFormatting.GRAY),false);
         refresh(p);
     }
     private void refresh(ServerPlayer p) {
@@ -60,15 +63,15 @@ public final class SocialFeatures {
             social.activity(p).toggle(p.level().dimension(),p.getX(),p.getY(),p.getZ(),System.nanoTime());social.changed(p);return 1;
         }));
         dispatcher.register(Commands.literal("status").executes(c->active.status(c.getSource().getPlayerOrException(),null))
-            .then(Commands.argument("tekst",StringArgumentType.greedyString()).executes(c->active.status(c.getSource().getPlayerOrException(),StringArgumentType.getString(c,"tekst").strip()))));
+            .then(Commands.argument("status",StringArgumentType.greedyString()).executes(c->active.status(c.getSource().getPlayerOrException(),StringArgumentType.getString(c,"status").strip()))));
         dispatcher.register(Commands.literal("m").redirect(dispatcher.getRoot().getChild("msg")));
         dispatcher.register(Commands.literal("r").then(Commands.argument("message",MessageArgument.message()).executes(c->{
             var p=c.getSource().getPlayerOrException();var social=active;UUID targetId=social.replies.get(p.getUUID());
             var target=targetId==null?null:social.server.getPlayerList().getPlayer(targetId);
-            if(target==null) { c.getSource().sendFailure(Component.literal(targetId==null?"Nie masz jeszcze rozmówcy do odpowiedzi.":"Ostatni rozmówca jest offline."));return 0; }
+            if(target==null) { c.getSource().sendFailure(Component.literal(I18n.t(p,targetId==null?"reply.none":"reply.offline")));return 0; }
             MessageArgument.resolveChatMessage(c,"message",message->{
                 var current=social.server.getPlayerList().getPlayer(targetId);
-                if(current==null) c.getSource().sendFailure(Component.literal("Ostatni rozmówca jest offline."));
+                if(current==null) c.getSource().sendFailure(Component.literal(I18n.t(p,"reply.offline")));
                 else MsgCommandAccessor.bongo$sendMessage(c.getSource(),List.of(current),message);
             });return 1;
         })));
@@ -76,9 +79,9 @@ public final class SocialFeatures {
     private int status(ServerPlayer p,String text) {
         try {
             statuses.set(p.getUUID(),text);refresh(p);
-            p.sendSystemMessage(Component.literal(text==null?"Usunięto status.":"Ustawiono status: "+text).withStyle(ChatFormatting.GRAY));return 1;
-        } catch(IllegalArgumentException e) { p.sendSystemMessage(Component.literal(e.getMessage()).withStyle(ChatFormatting.RED)); }
-        catch(IOException e) { BongoUtils.LOG.error("Cannot save custom status",e);p.sendSystemMessage(Component.literal("Nie udało się zapisać statusu.").withStyle(ChatFormatting.RED)); }
+            p.sendSystemMessage(Component.literal(I18n.t(p,text==null?"status.clear":"status.set",text)).withStyle(ChatFormatting.GRAY));return 1;
+        } catch(IllegalArgumentException e) { p.sendSystemMessage(Component.literal(I18n.t(p,"status.invalid")).withStyle(ChatFormatting.RED)); }
+        catch(IOException e) { BongoUtils.LOG.error("Cannot save custom status",e);p.sendSystemMessage(Component.literal(I18n.t(p,"status.error")).withStyle(ChatFormatting.RED)); }
         return 0;
     }
     public void conversation(CommandSourceStack source,Collection<ServerPlayer> targets,PlayerChatMessage message) {
@@ -107,7 +110,7 @@ public final class SocialFeatures {
         if(ping[0]) {
             var sender=server.getPlayerList().getPlayer(message.sender());
             String name=sender==null?type.name().getString():sender.getGameProfile().name();
-            recipient.sendOverlayMessage(Component.literal(name+" wspomniał(a) o Tobie na czacie.").withStyle(ChatFormatting.BLUE));
+            recipient.sendOverlayMessage(Component.literal(I18n.t(recipient,"mention",name)).withStyle(ChatFormatting.BLUE));
             recipient.connection.send(new ClientboundSoundPacket(SoundEvents.NOTE_BLOCK_PLING,SoundSource.MASTER,recipient.getX(),recipient.getY(),recipient.getZ(),1f,1f,recipient.getRandom().nextLong()));
         }
         return found[0]?message.withUnsignedContent(result):message;

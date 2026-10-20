@@ -12,7 +12,7 @@ BongoUtils to Minecraft Fabric mod typu server-side - instalacja po stronie klie
 ## Instalacja
 
 1. Zatrzymaj serwer i wykonaj kopię świata oraz danych graczy.
-2. Umieść `BongoUtils-1.6.1.jar` i `fabric-api-0.161.0+26.3.jar` w katalogu `mods/` serwera Fabric 26.3. Przy aktualizacji usuń stary JAR BongoUtils; nie zostawiaj dwóch wersji moda. Zachowaj katalog `config/bongoutils/`.
+2. Umieść `BongoUtils-1.6.2.jar` i `fabric-api-0.161.0+26.3.jar` w katalogu `mods/` serwera Fabric 26.3. Przy aktualizacji usuń stary JAR BongoUtils; nie zostawiaj dwóch wersji moda. Zachowaj katalog `config/bongoutils/`.
 3. W `server.properties` ustaw:
 
    ```properties
@@ -224,9 +224,9 @@ Z Java 25:
 .\gradlew.bat build
 ```
 
-Na Linuxie: `bash gradlew build`. Wynik: `build/libs/BongoUtils-1.6.1.jar`. Plik `-sources.jar` jest archiwum kodu, nie modem do instalacji. Loom 1.17.12 i Gradle 9.6.0 są przypięte w projekcie. Minecraft 26.3 używa oficjalnych nazw klas i nie wymaga Yarn.
+Na Linuxie: `bash gradlew build`. Wynik: `build/libs/BongoUtils-1.6.2.jar`. Plik `-sources.jar` jest archiwum kodu, nie modem do instalacji. Loom 1.17.12 i Gradle 9.6.0 są przypięte w projekcie. Minecraft 26.3 używa oficjalnych nazw klas i nie wymaga Yarn.
 
-`build` uruchamia 39 testów dotyczących haseł, trwałości danych, normalizacji nicków, URL Discorda, sieci prywatnych, PNG, limitów, whitelisty IGN, pierwszeństwa MSA oraz zmiany i wyczyszczenia hasła. Sprawdzane są trwałość zmian po restarcie, odrzucenie starego hasła, brak nadpisania nowszego zapisu przez stary formularz, ochrona MSA, uszkodzony plik konta i rejestracja po wyczyszczeniu. Testy whitelisty obejmują duplikaty z różną wielkością liter i odrzucenie błędnego pliku bez utraty poprzedniej listy. Testy regulaminu i konfiguracji obejmują zgodność starego configu, przełączanie trybów, klikalny URL, treść i zamykanie dialogu, rzeczywistą komendę reload w dispatcherze, uprawnienia oraz zachowanie całej poprzedniej konfiguracji po błędzie. Nie zastępują wizualnego sprawdzenia `/rules` w kliencie graficznym.
+`build` uruchamia 46 testów dotyczących haseł, trwałości danych, normalizacji nicków, URL Discorda, sieci prywatnych, PNG, limitów, whitelisty IGN, pierwszeństwa MSA oraz zmiany i wyczyszczenia hasła. Sprawdzane są trwałość zmian po restarcie, odrzucenie starego hasła, brak nadpisania nowszego zapisu przez stary formularz, ochrona MSA, uszkodzony plik konta i rejestracja po wyczyszczeniu. Testy whitelisty obejmują duplikaty z różną wielkością liter i odrzucenie błędnego pliku bez utraty poprzedniej listy. Testy regulaminu i konfiguracji obejmują zgodność starego configu, przełączanie trybów, klikalny URL, treść i zamykanie dialogu, rzeczywistą komendę reload w dispatcherze, uprawnienia oraz zachowanie całej poprzedniej konfiguracji po błędzie. Nie zastępują wizualnego sprawdzenia `/rules` w kliencie graficznym.
 
 Dołączony `IntegrationHarness` łączy się jako klient zwykłego protokołu Minecrafta, bez BongoUtils po stronie klienta. Na osobnym **lokalnym** serwerze testowym, z akceptacją EULA, odpowiednimi zależnościami, `server-ip=127.0.0.1`, `server-port=25579` i wyłączoną whitelistą:
 
@@ -326,11 +326,42 @@ Testy wspólnej integracji znajdują się w projekcie BongosTeleports: `sharedCl
 - Każdy odbiorca otrzymuje własne kolory poprzez dekorację treści; oryginalna treść i podpis wiadomości są zachowane. Wiadomości anulowane przed wysyłką nie pingują. Filtrowana treść nie jest odtwarzana ani podświetlana. Prywatny czat klanu, `/msg` i wiadomości systemowe nie uruchamiają publicznych wzmianek.
 - `/m <gracz> <wiadomość>` jest aliasem natywnego `/msg`. `/r <wiadomość>` odpowiada ostatniemu rozmówcy z `/msg`, `/m`, `/tell`, `/w` lub `/r`, zarówno po odebraniu, jak i wysłaniu wiadomości. Przy wielu adresatach w natywnym `/msg` rozmówcą nadawcy zostaje ostatni adresat w kolejności Minecrafta. Wiadomość do siebie nie zmienia rozmówcy. Odpowiedź kierowana jest do UUID; jeżeli gracz jest offline, pojawia się błąd. Pamięć rozmowy jest czyszczona po wyjściu gracza oraz restarcie.
 
-Jednostkowe testy czasu, ruchu i zapisu: `./gradlew test`. Wspólne testy protokołu znajdują się w projekcie BongosTeleports: `./gradlew socialFeaturesTest` oraz wariant `-PsocialStandalone` (po przeniesieniu GP3D i Clans poza `mods` serwera testowego), na osobnym `verification-allmods` z aktualnym BongoUtils 1.6.1. Obejmują rzeczywiste pakiety ruchu, komunikaty, kolory per odbiorca, dźwięk, hotbar, prywatność czatu klanowego, aliasy i restart. Próg pięciu minut jest w tym teście przyspieszany wyłącznie przez cofnięcie zegara aktywności w osobnym testowym JAR-ze, chronionym markerem fixture i komendą dostępną z konsoli. Żadna komenda testowa ani możliwość manipulowania zegarem nie trafia do produkcyjnego BongoUtils.
+Jednostkowe testy czasu, ruchu i zapisu: `./gradlew test`. Wspólne testy protokołu znajdują się w projekcie BongosTeleports: `./gradlew socialFeaturesTest` oraz wariant `-PsocialStandalone` (po przeniesieniu GP3D i Clans poza `mods` serwera testowego), na osobnym `verification-allmods` z aktualnym BongoUtils 1.6.2. Obejmują rzeczywiste pakiety ruchu, komunikaty, kolory per odbiorca, dźwięk, hotbar, prywatność czatu klanowego, aliasy i restart. Próg pięciu minut jest w tym teście przyspieszany wyłącznie przez cofnięcie zegara aktywności w osobnym testowym JAR-ze, chronionym markerem fixture i komendą dostępną z konsoli. Żadna komenda testowa ani możliwość manipulowania zegarem nie trafia do produkcyjnego BongoUtils.
 
 
 ## Wersja scalona — 1.6.1
 
-Wspólny build zawiera `/rules` i `/bongoutils reload` z gałęzi `codex/rules-config-reload`, panel GP3D z ustawieniami lokalnymi/globalnymi oraz AFK, statusy, wzmianki i aliasy prywatnych wiadomości. Instalować jeden JAR **BongoUtils-1.6.1.jar**, zastępując dotychczasowy BongoUtils z którejkolwiek sesji. Dane kont, flag i statusów pozostają w dotychczasowych plikach.
+Wspólny build zawiera `/rules` i `/bongoutils reload` z gałęzi `codex/rules-config-reload`, panel GP3D z ustawieniami lokalnymi/globalnymi oraz AFK, statusy, wzmianki i aliasy prywatnych wiadomości. Instalować jeden JAR **BongoUtils-1.6.2.jar**, zastępując dotychczasowy BongoUtils z którejkolwiek sesji. Dane kont, flag i statusów pozostają w dotychczasowych plikach.
 
 Rejestracja komend jest wspólna. Reload przeładowuje konfigurację moda; nie tworzy ponownie modułu statusów ani nie czyści rozmów `/r`. `resetpassword` pozostaje dostępne wyłącznie dla źródeł bez encji, również gdy operator ma prawo do `reload`. Test wspólnej rejestracji obejmuje komendy z obu gałęzi. Test serwerowy dodatkowo sprawdza dialog i link `/rules`, przełączanie trybu bez restartu, nieudaną walidację, uprawnienia gracza/OP/konsoli oraz zachowanie statusu i rozmówcy podczas reloadu.
+
+
+## Lokalizacja PL i angielski fallback — 1.6.2
+
+Język jest wybierany osobno dla każdego gracza na podstawie języka klienta Minecrafta. `pl`, `pl_*` i `pl-*` wybierają polski; pozostałe, nieznane lub brakujące wartości wybierają angielski. Brak polskiego tłumaczenia danego komunikatu również używa angielskiego tekstu. Komendy nie zmieniają nazw. Nie jest wymagany mod ani paczka zasobów na kliencie.
+
+Lokalizacja obejmuje AFK (również ogłoszenia osobno dla odbiorców), statusy, `/r`, wzmianki nad hotbarem, regulamin, reload, panel działek i jego błędy, okna skinów i walidację PNG/MineSkin, zarządzanie hasłami oraz whitelistę IGN. Własne statusy, nicki i teksty wpisane przez administratora pozostają treścią użytkownika i nie są automatycznie tłumaczone.
+
+Okno logowania/rejestracji używa języka z pakietu ustawień klienta w fazie konfiguracji, jeszcze przed wejściem do świata. Jeśli połączenie zostanie odrzucone wcześniej, zanim klient prześle język (np. podczas kontroli sesji MSA), komunikat używa angielskiego fallbacku. Konsola/RCON również używają angielskiego. Zmiana języka klienta podczas gry działa przy kolejnych komunikatach i ponownym otwarciu okna.
+
+Treść regulaminu może mieć opcjonalny wariant `rules.en`, używany przez klientów angielskich i pozostałe języki:
+
+```json
+{
+  "allowOffline": true,
+  "mineSkinApiKey": "",
+  "rules": {
+    "mode": "dialog",
+    "title": "Regulamin serwera",
+    "entries": ["Szanuj innych graczy."],
+    "en": {
+      "title": "Server rules",
+      "entries": ["Respect other players."]
+    }
+  }
+}
+```
+
+W trybie `link` `rules.url` może wskazywać polską stronę, a `rules.en.url` angielską. Pominięte pola w `en` dziedziczą wspólne pola `rules`; dotychczasowe konfiguracje bez `en` zachowują swoją treść. Domyślny tytuł i elementy interfejsu mają angielski fallback niezależnie od obecności wariantu regulaminu. Po edycji użyj `/bongoutils reload`. Błędny wariant `en`, tak jak reszta błędnego configu, nie zastępuje ostatnich poprawnych ustawień.
+
+Katalogi komunikatów w źródłach: `src/main/resources/assets/bongoutils/lang/pl_pl.json` oraz `en_us.json`. Testy sprawdzają kompletność kluczy, parametry, fallback i zachowanie własnej treści. Test serwerowy `utilsLocalizationTest` w projekcie Teleports używa jednocześnie klientów PL, EN i `de_de`, sprawdza logowanie i rejestrację przed wejściem do świata, okna i błędy, ogłoszenia AFK per odbiorca, oba warianty regulaminu po reloadzie oraz zmianę języka bez ponownego łączenia.

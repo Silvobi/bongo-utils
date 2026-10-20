@@ -1,6 +1,7 @@
 package pl.bongo.bongoutils.claims;
 
 import java.util.*;
+import pl.bongo.bongoutils.I18n;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
@@ -17,30 +18,30 @@ public final class ManageClaimUi {
     private record Session(String token,Long claimId,String key,UUID owner,long revision,long opened,String flag,String pending,boolean reset) {}
     private final Map<UUID,Session> sessions=new HashMap<>();
     public void forget(UUID player) { sessions.remove(player); }
-    private static boolean pl(ServerPlayer p) { return p.clientInformation().language().toLowerCase(Locale.ROOT).startsWith("pl"); }
+    private static boolean pl(ServerPlayer p) { return I18n.polish(I18n.language(p)); }
     private static String text(ServerPlayer p,String polish,String english) { return pl(p)?polish:english; }
     private static void error(ServerPlayer p,String message) { p.sendSystemMessage(Component.literal(message).withStyle(ChatFormatting.RED)); }
-    private static ClaimFlags flags() { if(ClaimFlags.active==null) throw new IllegalStateException("GriefPrevention3D nie jest dostępne.");return ClaimFlags.active; }
+    private static ClaimFlags flags() { if(ClaimFlags.active==null) throw new I18n.UiFailure("claim.missing.gp");return ClaimFlags.active; }
     public int open(ServerPlayer player,boolean global) {
         sessions.remove(player.getUUID());
         try {
             ClaimFlags f=flags();Object claim=global?null:f.gp.at(player);
-            if(!global && claim==null) throw new IllegalStateException("Nie stoisz na żadnej działce.");
-            if(claim!=null && !f.gp.allows(claim,player,"MANAGE")) throw new IllegalStateException("Ta działka wymaga własności lub Manage Trust.");
+            if(!global && claim==null) throw new I18n.UiFailure("claim.wilderness");
+            if(claim!=null && !f.gp.allows(claim,player,"MANAGE")) throw new I18n.UiFailure("claim.manage");
             Session s=new Session("",claim==null?null:f.gp.id(claim),claim==null?null:f.gp.key(claim),global?player.getUUID():f.gp.owner(claim),f.store.revision(),System.nanoTime(),null,null,false);
             show(player,s,null,null,false);return 1;
-        } catch(RuntimeException e) { error(player,e.getMessage());return 0; }
+        } catch(RuntimeException e) { error(player,I18n.error(I18n.language(player),e,"claim.error"));return 0; }
     }
     private Object validate(ServerPlayer player,Session s) {
         ClaimFlags f=flags();
-        if(System.nanoTime()-s.opened>TTL) throw new IllegalStateException("Okno wygasło. Otwórz /manageclaim ponownie.");
+        if(System.nanoTime()-s.opened>TTL) throw new I18n.UiFailure("claim.expired");
         if(s.claimId==null) {
-            if(!player.getUUID().equals(s.owner)) throw new IllegalStateException("Nieprawidłowy właściciel ustawień.");
+            if(!player.getUUID().equals(s.owner)) throw new I18n.UiFailure("claim.owner");
             return null;
         }
         Object claim=f.gp.byId(s.claimId);
-        if(claim==null || !f.gp.key(claim).equals(s.key)) throw new IllegalStateException("Działka została usunięta lub zmieniła właściciela. Otwórz panel ponownie.");
-        if(!f.gp.allows(claim,player,"MANAGE")) throw new IllegalStateException("Utracono uprawnienia do tej działki.");
+        if(claim==null || !f.gp.key(claim).equals(s.key)) throw new I18n.UiFailure("claim.deleted");
+        if(!f.gp.allows(claim,player,"MANAGE")) throw new I18n.UiFailure("claim.revoked");
         return claim;
     }
     private static ActionButton button(String label,String action) {
@@ -80,7 +81,7 @@ public final class ManageClaimUi {
             }
         } else {
             var def=ClaimFlags.definition(flag);
-            if(!f.editable(player,claim,def)) throw new IllegalStateException("Brak uprawnień do tej flagi albo flaga jest wyłączona w konfiguracji GP3D.");
+            if(!f.editable(player,claim,def)) throw new I18n.UiFailure("claim.locked");
             title=def.label(pl(player));
             body+="\n"+text(player,"Aktualnie: ","Current: ")+current(player,s,claim,def);
             if("PVP".equals(def.nativeFlag())) body+="\n"+text(player,"Jawne Włączone zezwala na PvP na działce. Domyślne moda przywraca politykę GP3D.","Explicit On enables PvP in the claim. Mod default restores GP3D policy.");
@@ -106,7 +107,7 @@ public final class ManageClaimUi {
         try {
             Object claim=validate(player,s);ClaimFlags f=flags();
             if(parts[2].equals("close")) { player.connection.send(ClientboundClearDialogPacket.INSTANCE);return; }
-            if(f.store.revision()!=s.revision) throw new IllegalStateException("Ustawienia zmieniły się w międzyczasie. Otwórz panel ponownie.");
+            if(f.store.revision()!=s.revision) throw new I18n.UiFailure("claim.changed");
             switch(parts[2]) {
                 case "flag" -> {
                     if(parts.length!=4) throw new IllegalArgumentException();int index=Integer.parseInt(parts[3]);
@@ -123,16 +124,16 @@ public final class ManageClaimUi {
                 case "save" -> {
                     if(s.flag==null || s.pending==null && !s.reset) throw new IllegalArgumentException();
                     var def=ClaimFlags.definition(s.flag);
-                    if(!f.editable(player,claim,def)) throw new IllegalStateException("Brak uprawnień do zmiany tej flagi.");
+                    if(!f.editable(player,claim,def)) throw new I18n.UiFailure("claim.flag.permission");
                     if(claim==null) f.defaults(player.getUUID(),s.flag,s.reset?null:s.pending);
                     else ClaimFlags.override(claim,s.flag,s.reset?null:s.pending);
                     show(player,s,null,null,false);
                 }
-                default -> throw new IllegalArgumentException("Nieprawidłowa akcja formularza.");
+                default -> throw new I18n.UiFailure("claim.action");
             }
         } catch(RuntimeException e) {
             player.connection.send(ClientboundClearDialogPacket.INSTANCE);
-            error(player,e.getMessage()==null?text(player,"Nieprawidłowy formularz działki.","Invalid claim form."):e.getMessage());
+            error(player,I18n.error(I18n.language(player),e,"claim.error"));
         }
     }
 }

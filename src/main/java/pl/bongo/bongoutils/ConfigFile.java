@@ -31,11 +31,11 @@ public final class ConfigFile {
                 JsonObject rules = object.getAsJsonObject("rules");
                 if (rules == null) throw new IllegalArgumentException("rules must be an object");
                 string(rules, "mode"); string(rules, "url"); string(rules, "title");
-                if (rules.has("entries")) {
-                    for (JsonElement entry : rules.getAsJsonArray("entries")) {
-                        if (!entry.isJsonPrimitive() || !entry.getAsJsonPrimitive().isString() || entry.getAsString().isBlank())
-                            throw new IllegalArgumentException("rules.entries must contain non-empty strings");
-                    }
+                entries(rules);
+                if(rules.has("en")) {
+                    JsonObject english=rules.getAsJsonObject("en");
+                    if(english==null) throw new IllegalArgumentException("rules.en must be an object");
+                    string(english,"title");string(english,"url");entries(english);
                 }
             }
             BongoUtils.Config next = Store.JSON.fromJson(object, BongoUtils.Config.class);
@@ -46,12 +46,28 @@ public final class ConfigFile {
             if (next.rules.mode.equals("link") && next.rules.url.isEmpty())
                 throw new IllegalArgumentException("rules.url is required in link mode");
             next.rules.entries = java.util.List.copyOf(next.rules.entries);
+            if(next.rules.en!=null) {
+                var english=next.rules.en;
+                if(english.title!=null && english.title.isBlank()) throw new IllegalArgumentException("rules.en.title must not be blank");
+                if(english.url!=null && !english.url.isEmpty()) url(english.url);
+                if(next.rules.mode.equals("link") && english.url!=null && english.url.isEmpty())
+                    throw new IllegalArgumentException("rules.en.url must not be empty in link mode");
+                if(english.entries!=null) english.entries=java.util.List.copyOf(english.entries);
+            }
             current = next;
         } catch (RuntimeException e) {
             throw new IOException("Invalid config.json: " + e.getMessage(), e);
         }
     }
 
+    private static void entries(JsonObject object) {
+        if(!object.has("entries")) return;
+        if(!object.get("entries").isJsonArray()) throw new IllegalArgumentException("rules.entries must be an array");
+        for(JsonElement entry:object.getAsJsonArray("entries")) {
+            if(!entry.isJsonPrimitive() || !entry.getAsJsonPrimitive().isString() || entry.getAsString().isBlank())
+                throw new IllegalArgumentException("rules.entries must contain non-empty strings");
+        }
+    }
     private static void string(JsonObject object, String key) {
         if (object.has(key) && (!object.get(key).isJsonPrimitive() || !object.getAsJsonPrimitive(key).isString()))
             throw new IllegalArgumentException(key + " must be a string");

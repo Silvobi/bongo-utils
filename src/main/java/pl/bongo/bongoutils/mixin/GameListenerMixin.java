@@ -12,6 +12,10 @@ import pl.bongo.bongoutils.ConnectionState;
 @Mixin(ServerGamePacketListenerImpl.class)
 public abstract class GameListenerMixin extends ServerCommonPacketListenerImpl {
     protected GameListenerMixin(MinecraftServer server, Connection connection, CommonListenerCookie cookie) { super(server, connection, cookie); }
+    @Inject(method="handleClientInformation",at=@At("RETURN"))
+    private void bongo$language(net.minecraft.network.protocol.common.ServerboundClientInformationPacket packet,CallbackInfo ci) {
+        ((ConnectionState)connection).bongo$language(packet.information().language());
+    }
     @Inject(method = "handleConfigurationAcknowledged", at = @At("RETURN"))
     private void bongo$refresh(ServerboundConfigurationAcknowledgedPacket packet, CallbackInfo ci) {
         ConnectionState state = (ConnectionState) connection;
