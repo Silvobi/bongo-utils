@@ -15,23 +15,24 @@ public final class MsaLogin {
         if (official != null) return Route.OCCUPIED_MSA;
         return allowOffline ? Route.OFFLINE : Route.OFFLINE_DISABLED;
     }
-    public static String rejection(Route route, String name) {
-        return switch (route) {
-            case RESERVED_MSA -> "Połączenie odrzucone! (czy łączysz się w trybie OFFLINE?)\n"
-                    + "IGN, z którego korzystasz jest zarejestrowane jako \"Konto MSA\".\n"
-                    + "Zaloguj się do swojego konta MSA i spróbuj ponownie lub użyj innego IGN.";
-            case OCCUPIED_MSA -> "IGN " + name + " jest już zajęty przez inne konto MSA!\n"
-                    + "Zmień IGN (in-game nickname) aby móc połączyć się w trybie OFFLINE, lub zaloguj się do swojego konta MSA.";
-            case OFFLINE_DISABLED -> "Ten nick wymaga zalogowanego konta Minecraft.";
+    public static String rejection(Route route,String name) { return rejection(route,name,null); }
+    public static String rejection(Route route,String name,String language) {
+        return switch(route) {
+            case RESERVED_MSA -> I18n.t(language,"msa.reserved");
+            case OCCUPIED_MSA -> I18n.t(language,"msa.occupied",name);
+            case OFFLINE_DISABLED -> I18n.t(language,"msa.disabled");
             default -> throw new IllegalArgumentException("This route does not reject a connection");
         };
     }
-    public static Component welcome() {
-        return Component.literal("Połączono z konta MSA. Gracz został zarejestrowany automatycznie")
-                .withStyle(ChatFormatting.GREEN);
+    public static Component welcome() { return welcome(null); }
+    public static Component welcome(String language) {
+        return Component.literal(I18n.t(language,"msa.welcome")).withStyle(ChatFormatting.GREEN);
     }
-    public static Component registerJoined(Store store, String name, UUID uuid, boolean verified) throws IOException {
-        if (!verified || !store.reserve(name, uuid)) return null;
-        return welcome();
+    public static Component registerJoined(Store store,String name,UUID uuid,boolean verified) throws IOException {
+        return registerJoined(store,name,uuid,verified,null);
+    }
+    public static Component registerJoined(Store store,String name,UUID uuid,boolean verified,String language) throws IOException {
+        if(!verified || !store.reserve(name,uuid)) return null;
+        return welcome(language);
     }
 }

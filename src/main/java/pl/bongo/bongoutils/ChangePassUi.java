@@ -18,7 +18,7 @@ public final class ChangePassUi {
     }
     public int open(ServerPlayer player) {
         if (!allowed(player.createCommandSourceStack())) return 0;
-        choose(player, "Podaj IGN zarejestrowanego konta offline. Konta MSA nie mają hasła serwerowego.");
+        choose(player, I18n.t(player, "password.prompt"));
         return 1;
     }
     private Session session(ServerPlayer player, String stage, String target, String hash) {
@@ -28,11 +28,11 @@ public final class ChangePassUi {
     }
     private void choose(ServerPlayer player, String message) {
         Session session = session(player, "nick", null, null);
-        player.openDialog(Dialogs.changePassNick(session.token, message));
+        player.openDialog(Dialogs.changePassNick(I18n.language(player), session.token, message));
     }
     private void edit(ServerPlayer player, String target, String hash, String message) {
         Session session = session(player, "edit", target, hash);
-        player.openDialog(Dialogs.changePassEdit(session.token, target, message));
+        player.openDialog(Dialogs.changePassEdit(I18n.language(player), session.token, target, message));
     }
     public void submit(ServerPlayer player, ServerboundCustomClickActionPacket packet) {
         if (!packet.id().getPath().startsWith("changepass_")) return;
@@ -41,7 +41,7 @@ public final class ChangePassUi {
         if (!allowed(player.createCommandSourceStack())) {
             sessions.remove(player.getUUID());
             player.connection.send(ClientboundClearDialogPacket.INSTANCE);
-            player.sendSystemMessage(Component.literal("Nie masz już uprawnień do zmiany haseł."));
+            player.sendSystemMessage(Component.literal(I18n.t(player, "password.permission")));
             return;
         }
         String[] action = packet.id().getPath().split("/", 2);
@@ -52,22 +52,22 @@ public final class ChangePassUi {
                     sessions.remove(player.getUUID());
                     player.connection.send(ClientboundClearDialogPacket.INSTANCE);
                 }
-                case "changepass_back" -> choose(player, "Podaj IGN zarejestrowanego konta offline.");
+                case "changepass_back" -> choose(player, I18n.t(player, "password.prompt.short"));
                 case "changepass_lookup" -> {
                     if (!session.stage.equals("nick") || !(packet.payload().orElse(null) instanceof CompoundTag data)) return;
                     String target = data.getString("nick").orElse("").strip();
-                    if (!target.matches("[A-Za-z0-9_]{1,16}")) { choose(player, "Nieprawidłowy nick. Użyj 1–16 liter, cyfr lub znaku _."); return; }
+                    if (!target.matches("[A-Za-z0-9_]{1,16}")) { choose(player, I18n.t(player, "password.nick.invalid")); return; }
                     String hash = BongoUtils.store.offlinePassword(target);
-                    if (hash == null) { choose(player, "To konto nie ma zarejestrowanego hasła offline albo jest kontem MSA."); return; }
-                    edit(player, target, hash, "Nowe hasło musi mieć 8–128 znaków. Pole nie maskuje hasła — nie używaj hasła z innych usług. Po zmianie konto zostanie rozłączone.");
+                    if (hash == null) { choose(player, I18n.t(player, "password.missing")); return; }
+                    edit(player, target, hash, I18n.t(player, "password.help"));
                 }
                 case "changepass_save" -> {
                     if (!session.stage.equals("edit") || !(packet.payload().orElse(null) instanceof CompoundTag data)) return;
                     String password = data.getString("password").orElse("");
-                    if (password.length() < 8 || password.length() > 128) { edit(player, session.target, session.hash, "Hasło musi mieć 8–128 znaków. Pole nie maskuje hasła."); return; }
-                    if (!password.equals(data.getString("repeat").orElse(""))) { edit(player, session.target, session.hash, "Hasła muszą być identyczne. Pole nie maskuje hasła."); return; }
+                    if (password.length() < 8 || password.length() > 128) { edit(player, session.target, session.hash, I18n.t(player, "password.length")); return; }
+                    if (!password.equals(data.getString("repeat").orElse(""))) { edit(player, session.target, session.hash, I18n.t(player, "password.match")); return; }
                     if (!BongoUtils.limits.allow("changepass:" + player.getUUID(), 10, 60_000)) {
-                        edit(player, session.target, session.hash, "Zbyt wiele zmian hasła. Spróbuj za minutę."); return;
+                        edit(player, session.target, session.hash, I18n.t(player, "password.rate")); return;
                     }
                     session.busy = true;
                     MinecraftServer server = Objects.requireNonNull(player.level().getServer());
@@ -81,7 +81,7 @@ public final class ChangePassUi {
                                 if (!allowed(player.createCommandSourceStack())) {
                                     sessions.remove(player.getUUID());
                                     player.connection.send(ClientboundClearDialogPacket.INSTANCE);
-                                    player.sendSystemMessage(Component.literal("Odebrano uprawnienia. Hasło nie zostało zmienione.")); return;
+                                    player.sendSystemMessage(Component.literal(I18n.t(player, "password.revoked"))); return;
                                 }
                                 try { apply(player, session, hash); }
                                 catch (IOException e) { storageError(player); }
@@ -91,16 +91,16 @@ public final class ChangePassUi {
                                 if (sessions.get(player.getUUID()) == session) { session.busy = false; storageError(player); }
                             });
                         }
-                    })) { session.busy = false; edit(player, session.target, session.hash, "Serwer jest zajęty. Spróbuj ponownie."); }
+                    })) { session.busy = false; edit(player, session.target, session.hash, I18n.t(player,"login.busy")); }
                 }
                 case "changepass_clear" -> {
                     if (!session.stage.equals("edit")) return;
                     Session next = session(player, "confirm", session.target, session.hash);
-                    player.openDialog(Dialogs.changePassClear(next.token, next.target));
+                    player.openDialog(Dialogs.changePassClear(I18n.language(player), next.token, next.target));
                 }
                 case "changepass_edit" -> {
                     if (!session.stage.equals("confirm")) return;
-                    edit(player, session.target, session.hash, "Wybierz nowe hasło lub wyczyść istniejące. Pole nie maskuje hasła.");
+                    edit(player, session.target, session.hash, I18n.t(player, "password.edit.help"));
                 }
                 case "changepass_confirm" -> {
                     if (!session.stage.equals("confirm")) return;
@@ -111,13 +111,13 @@ public final class ChangePassUi {
     }
     private void apply(ServerPlayer operator, Session session, String nextHash) throws IOException {
         if (!BongoUtils.store.editOfflinePassword(session.target, session.hash, nextHash)) {
-            choose(operator, "Konto zmieniło się od otwarcia formularza. Ponownie sprawdź nick; nic nie zmieniono."); return;
+            choose(operator, I18n.t(operator, "password.stale")); return;
         }
         sessions.remove(operator.getUUID());
         operator.connection.send(ClientboundClearDialogPacket.INSTANCE);
         operator.sendSystemMessage(Component.literal(nextHash == null
-                ? "Wyczyszczono hasło konta " + session.target + ". Kolejne połączenie wymaga rejestracji."
-                : "Zmieniono hasło konta " + session.target + "."));
+                ? I18n.t(operator,"password.cleared",session.target)
+                : I18n.t(operator,"password.changed",session.target)));
         MinecraftServer server = Objects.requireNonNull(operator.level().getServer());
         BongoUtils.LOG.info("Operator {} {} password for offline account {}", operator.getGameProfile().name(),
                 nextHash == null ? "cleared" : "changed", Store.key(session.target));
@@ -126,12 +126,12 @@ public final class ChangePassUi {
                     && !((ConnectionState) connection).bongo$verified()
                     && Store.key(target.getOwner().name()).equals(Store.key(session.target)))
                 target.disconnect(Component.literal(nextHash == null
-                        ? "Administrator wyczyścił hasło konta. Połącz się ponownie, aby zarejestrować nowe hasło."
-                        : "Administrator zmienił hasło konta. Połącz się ponownie i użyj nowego hasła."));
+                        ? I18n.t(((ConnectionState)connection).bongo$language(),"password.kick.clear")
+                        : I18n.t(((ConnectionState)connection).bongo$language(),"password.kick.change")));
         }
     }
     private void storageError(ServerPlayer player) {
-        choose(player, "Błąd odczytu lub zapisu konta. Skontaktuj się z administratorem.");
+        choose(player, I18n.t(player, "password.storage"));
     }
     public void disconnected(UUID uuid) { sessions.remove(uuid); }
     private static final class Session {

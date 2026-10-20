@@ -32,22 +32,22 @@ public abstract class LoginMixin {
     private void bongo$hello(ServerboundHelloPacket packet, CallbackInfo ci) {
         ci.cancel();
         if (state != ServerLoginPacketListenerImpl.State.HELLO || !packet.name().matches("[A-Za-z0-9_]{1,16}")) {
-            disconnect(Component.literal("Nieprawidłowe połączenie lub nick.")); return;
+            disconnect(Component.literal(I18n.t(((ConnectionState)connection).bongo$language(),"login.invalid"))); return;
         }
         requestedUsername = packet.name();
         String address = connection.getRemoteAddress() instanceof java.net.InetSocketAddress remote ? remote.getAddress().getHostAddress() : "local";
         if (!BongoUtils.limits.allow("ip:" + address, 20, 60_000)) {
-            disconnect(Component.literal("Zbyt wiele połączeń. Spróbuj za minutę.")); return;
+            disconnect(Component.literal(I18n.t(((ConnectionState)connection).bongo$language(),"login.rate"))); return;
         }
         state = ServerLoginPacketListenerImpl.State.AUTHENTICATING;
         if (!BongoUtils.submit(() -> {
             try {
                 UUID official = BongoUtils.skins.lookupUuid(packet.name());
-                MsaLogin.Route route = MsaLogin.route(official, packet.profileId(), BongoUtils.store.reserved(packet.name()), BongoUtils.config.allowOffline);
+                MsaLogin.Route route = MsaLogin.route(official, packet.profileId(), BongoUtils.store.reserved(packet.name()), BongoUtils.config().allowOffline);
                 boolean premiumCandidate = route == MsaLogin.Route.VERIFY_SESSION;
                 // The UUID only chooses the handshake. Only Mojang session verification grants access.
                 if (!premiumCandidate && route != MsaLogin.Route.OFFLINE) {
-                    server.execute(() -> disconnect(Component.literal(MsaLogin.rejection(route, packet.name())))); return;
+                    server.execute(() -> disconnect(Component.literal(MsaLogin.rejection(route, packet.name(), ((ConnectionState)connection).bongo$language())))); return;
                 }
                 server.execute(() -> {
                     if (!connection.isConnected() || state != ServerLoginPacketListenerImpl.State.AUTHENTICATING) return;
@@ -57,24 +57,24 @@ public abstract class LoginMixin {
                     connection.send(new ClientboundHelloPacket("", server.getKeyPair().getPublic().getEncoded(), challenge, premiumCandidate));
                 });
             } catch (Exception e) {
-                server.execute(() -> disconnect(Component.literal("Nie można sprawdzić konta Mojang. Spróbuj ponownie później.")));
+                server.execute(() -> disconnect(Component.literal(I18n.t(((ConnectionState)connection).bongo$language(),"login.mojang"))));
             }
-        })) disconnect(Component.literal("Serwer jest zajęty. Spróbuj ponownie."));
+        })) disconnect(Component.literal(I18n.t(((ConnectionState)connection).bongo$language(),"login.busy")));
     }
 
     @Inject(method = "handleKey", at = @At("HEAD"), cancellable = true)
     private void bongo$key(ServerboundKeyPacket packet, CallbackInfo ci) {
         if (!bongo$offline) return; // Vanilla verifies the actual online session and never falls back.
         ci.cancel();
-        if (state != ServerLoginPacketListenerImpl.State.KEY) { disconnect(Component.literal("Nieprawidłowa kolejność pakietów.")); return; }
+        if (state != ServerLoginPacketListenerImpl.State.KEY) { disconnect(Component.literal(I18n.t(((ConnectionState)connection).bongo$language(),"login.order"))); return; }
         try {
             var privateKey = server.getKeyPair().getPrivate();
-            if (!packet.isChallengeValid(challenge, privateKey)) { disconnect(Component.literal("Nieprawidłowy klucz połączenia.")); return; }
+            if (!packet.isChallengeValid(challenge, privateKey)) { disconnect(Component.literal(I18n.t(((ConnectionState)connection).bongo$language(),"login.key"))); return; }
             var secret = packet.getSecretKey(privateKey);
             connection.setEncryptionKey(Crypt.getCipher(2, secret), Crypt.getCipher(1, secret));
             UUID uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + Store.key(requestedUsername)).getBytes(StandardCharsets.UTF_8));
             startClientVerification(new GameProfile(uuid, requestedUsername));
-        } catch (Exception e) { disconnect(Component.literal("Nie udało się zaszyfrować połączenia.")); }
+        } catch (Exception e) { disconnect(Component.literal(I18n.t(((ConnectionState)connection).bongo$language(),"login.encrypt"))); }
     }
 
     @Inject(method = "startClientVerification", at = @At("HEAD"), cancellable = true)
@@ -85,7 +85,7 @@ public abstract class LoginMixin {
                 ((ConnectionState) connection).bongo$authenticated(true);
             }
         } catch (Exception e) {
-            ci.cancel(); disconnect(Component.literal("Błąd danych BongoUtils. Skontaktuj się z administratorem."));
+            ci.cancel(); disconnect(Component.literal(I18n.t(((ConnectionState)connection).bongo$language(),"data.error")));
         }
     }
 
@@ -96,7 +96,7 @@ public abstract class LoginMixin {
                 && translated.getKey().equals("multiplayer.disconnect.unverified_username")) {
             MsaLogin.Route route = BongoUtils.store.reserved(requestedUsername)
                     ? MsaLogin.Route.RESERVED_MSA : MsaLogin.Route.OCCUPIED_MSA;
-            return Component.literal(MsaLogin.rejection(route, requestedUsername));
+            return Component.literal(MsaLogin.rejection(route, requestedUsername, ((ConnectionState)connection).bongo$language()));
         }
         return reason;
     }
@@ -104,14 +104,14 @@ public abstract class LoginMixin {
     @Inject(method = "startClientVerification", at = @At("RETURN"))
     private void bongo$restoreSkin(GameProfile profile, CallbackInfo ci) {
         try { authenticatedProfile = BongoUtils.skins.restore(profile); }
-        catch (Exception e) { disconnect(Component.literal("Nie można odczytać zapisanego skina.")); }
+        catch (Exception e) { disconnect(Component.literal(I18n.t(((ConnectionState)connection).bongo$language(),"login.skin"))); }
     }
 
     @Inject(method = "verifyLoginAndFinishConnectionSetup", at = @At("HEAD"), cancellable = true)
     private void bongo$duplicate(GameProfile profile, CallbackInfo ci) {
         // Vanilla disconnects an existing player before our configuration-phase password gate.
         if (server.getPlayerList().getPlayer(profile.id()) != null) {
-            ci.cancel(); disconnect(Component.literal("To konto jest już połączone z serwerem."));
+            ci.cancel(); disconnect(Component.literal(I18n.t(((ConnectionState)connection).bongo$language(),"login.duplicate")));
         }
     }
 }

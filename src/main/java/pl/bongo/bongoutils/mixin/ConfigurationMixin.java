@@ -18,6 +18,10 @@ public abstract class ConfigurationMixin extends ServerCommonPacketListenerImpl 
     @Unique private AuthTask bongo$task;
     protected ConfigurationMixin(MinecraftServer server, Connection connection, CommonListenerCookie cookie) { super(server, connection, cookie); }
     @Invoker("finishCurrentTask") protected abstract void bongo$finishTask(ConfigurationTask.Type type);
+    @Inject(method="handleClientInformation",at=@At("RETURN"))
+    private void bongo$language(net.minecraft.network.protocol.common.ServerboundClientInformationPacket packet,CallbackInfo ci) {
+        ((ConnectionState)connection).bongo$language(packet.information().language());
+    }
     @Inject(method = "returnToWorld", at = @At("HEAD"))
     private void bongo$gate(CallbackInfo ci) {
         ConnectionState state = (ConnectionState) connection;

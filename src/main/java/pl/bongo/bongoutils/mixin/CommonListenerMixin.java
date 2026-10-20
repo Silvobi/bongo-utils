@@ -16,8 +16,10 @@ public abstract class CommonListenerMixin implements pl.bongo.bongoutils.Listene
         if (!packet.id().getNamespace().equals("bongoutils")) return;
         if ((Object) this instanceof AuthGate gate) gate.bongo$submit(packet);
         else if ((Object) this instanceof ServerGamePacketListenerImpl game) {
+            BongoUtils.claimUi.submit(game.player, packet);
             BongoUtils.skinUi.submit(game.player, packet);
             BongoUtils.changePassUi.submit(game.player, packet);
+            BongoUtils.mailUi.submit(game.player, packet);
         }
     }
 }

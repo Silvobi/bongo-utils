@@ -26,49 +26,44 @@ public final class IgnWhitelistCommand {
                         .suggests((c, builder) -> SharedSuggestionProvider.suggest(BongoUtils.ignWhitelist.names(), builder))
                         .executes(c -> edit(c.getSource(), StringArgumentType.getString(c, "names"), false)))));
     }
-    private static int enabled(CommandSourceStack source, boolean enabled) throws CommandSyntaxException {
+    private static int enabled(CommandSourceStack source,boolean enabled) throws CommandSyntaxException {
         try {
-            if (!BongoUtils.ignWhitelist.setEnabled(enabled)) throw error("Lista IGN jest już " + (enabled ? "włączona." : "wyłączona."));
-            source.sendSuccess(() -> Component.literal(enabled
-                    ? "Włączono whitelistę IGN. Wejście zależy wyłącznie od wpisanego nicku; hasło i bany nadal obowiązują."
-                    : "Wyłączono whitelistę IGN. Ponownie obowiązują ustawienia zwykłej whitelisty."), true);
-            enforce(source); return 1;
-        } catch (IOException e) { throw ioError(e); }
+            if(!BongoUtils.ignWhitelist.setEnabled(enabled)) throw error(source,enabled?"whitelist.already.on":"whitelist.already.off");
+            source.sendSuccess(()->Component.literal(I18n.t(source,enabled?"whitelist.on":"whitelist.off")),true);
+            enforce(source);return 1;
+        } catch(IOException e) { throw ioError(source,e); }
     }
     private static int list(CommandSourceStack source) {
-        var whitelist = BongoUtils.ignWhitelist; var names = whitelist.names();
-        source.sendSuccess(() -> Component.literal("Whitelista IGN: " + (whitelist.enabled() ? "włączona" : "wyłączona")
-                + ". Nicków: " + names.size() + (names.isEmpty() ? "." : ". " + String.join(", ", names))), false);
+        var whitelist=BongoUtils.ignWhitelist;var names=whitelist.names();
+        source.sendSuccess(()->Component.literal(I18n.t(source,"whitelist.list",I18n.t(source,whitelist.enabled()?"whitelist.enabled":"whitelist.disabled"),
+            names.size(),names.isEmpty()?".":". "+String.join(", ",names))),false);
         return names.size();
     }
-    private static int edit(CommandSourceStack source, String raw, boolean add) throws CommandSyntaxException {
-        List<String> names = Arrays.asList(raw.strip().split("\\s+"));
+    private static int edit(CommandSourceStack source,String raw,boolean add) throws CommandSyntaxException {
+        List<String> names=Arrays.asList(raw.strip().split("\\s+"));
         try {
-            int count = add ? BongoUtils.ignWhitelist.add(names) : BongoUtils.ignWhitelist.remove(names);
-            if (count == 0) throw error(add ? "Podane nicki są już na whiteliście IGN." : "Podanych nicków nie ma na whiteliście IGN.");
-            source.sendSuccess(() -> Component.literal((add ? "Dodano" : "Usunięto") + " " + count + " nicków "
-                    + (add ? "do" : "z") + " whitelisty IGN: " + String.join(", ", names)), true);
-            if (!add && BongoUtils.ignWhitelist.enabled()) BongoUtils.ignWhitelist.kickUnlisted(source.getServer());
+            int count=add?BongoUtils.ignWhitelist.add(names):BongoUtils.ignWhitelist.remove(names);
+            if(count==0) throw error(source,add?"whitelist.duplicate":"whitelist.missing");
+            source.sendSuccess(()->Component.literal(I18n.t(source,add?"whitelist.add":"whitelist.remove",count,String.join(", ",names))),true);
+            if(!add && BongoUtils.ignWhitelist.enabled()) BongoUtils.ignWhitelist.kickUnlisted(source.getServer());
             return count;
-        } catch (IllegalArgumentException e) { throw error("Nick musi mieć 1–16 znaków: litery A–Z, cyfry lub _. Podaj nicki oddzielone spacją."); }
-        catch (IOException e) { throw ioError(e); }
+        } catch(IllegalArgumentException e) { throw error(source,"whitelist.invalid"); }
+        catch(IOException e) { throw ioError(source,e); }
     }
     private static int reload(CommandSourceStack source) throws CommandSyntaxException {
         try {
-            BongoUtils.ignWhitelist.reload();
-            source.sendSuccess(() -> Component.literal("Przeładowano ign-whitelist.json."), true);
-            enforce(source); return 1;
-        } catch (IOException e) { throw ioError(e); }
+            BongoUtils.ignWhitelist.reload();source.sendSuccess(()->Component.literal(I18n.t(source,"whitelist.reload")),true);
+            enforce(source);return 1;
+        } catch(IOException e) { throw ioError(source,e); }
     }
     private static void enforce(CommandSourceStack source) {
-        if (BongoUtils.ignWhitelist.enabled()) BongoUtils.ignWhitelist.kickUnlisted(source.getServer());
+        if(BongoUtils.ignWhitelist.enabled()) BongoUtils.ignWhitelist.kickUnlisted(source.getServer());
         else source.getServer().kickUnlistedPlayers();
     }
-    private static CommandSyntaxException ioError(IOException e) {
-        BongoUtils.LOG.error("Cannot update IGN whitelist", e);
-        return error("Nie można zapisać lub odczytać whitelisty IGN. Dotychczasowa lista pozostaje aktywna; szczegóły w logu serwera.");
+    private static CommandSyntaxException ioError(CommandSourceStack source,IOException e) {
+        BongoUtils.LOG.error("Cannot update IGN whitelist",e);return error(source,"whitelist.error");
     }
-    private static CommandSyntaxException error(String message) {
-        return new SimpleCommandExceptionType(Component.literal(message)).create();
+    private static CommandSyntaxException error(CommandSourceStack source,String key,Object... args) {
+        return new SimpleCommandExceptionType(Component.literal(I18n.t(source,key,args))).create();
     }
 }
