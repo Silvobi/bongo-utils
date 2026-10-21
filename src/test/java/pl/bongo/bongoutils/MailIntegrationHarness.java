@@ -26,7 +26,7 @@ public final class MailIntegrationHarness {
             try (Bot pl = connect(plName, "pl_pl", true)) { pl.waitActive(200); }
             Thread.sleep(1200);
             MultiActionDialog form = open(en, "mail send " + plName.toUpperCase(Locale.ROOT));
-            check(form.common().inputs().size() == 1, "offline recipient resolves without case sensitivity; ordinary sender has no attachment input");
+            check(form.common().inputs().size() == 2, "offline recipient resolves without case sensitivity; ordinary composer has subject and body");
             CompoundTag fields = fields("Offline hello", false);
             fields.putString("important", "true"); fields.putString("recipient", opName);
             en.click(form.actions().getFirst(), fields); chat(en, "Mail sent. Recipients: 1.");
@@ -68,31 +68,37 @@ public final class MailIntegrationHarness {
                 command("bongoutils visibility " + plName + " visible");
                 command("op " + opName);
                 pl.send(new ServerboundChatCommandPacket("ignore " + opName)); chat(pl, "Ignorowanie włączone");
-                form = open(op, "mail send *");
-                check(form.common().inputs().size() == 2 && form.common().inputs().get(1).key().equals("attachments"), "OP composer offers URL attachments even with empty hands");
+                form = open(op, "mail admin-send");
+                check(form.common().inputs().size() == 4 && form.common().inputs().get(3).key().equals("body_en"), "OP composer offers subjects and bodies in both languages");
                 en.click(form.actions().getFirst(), fields("stolen session", true));
-                op.click(form.actions().getFirst(), fields("Admin announcement", "javascript:alert(1)"));
+                CompoundTag invalid = fields("Admin announcement", false); invalid.putString("body_en", "");
+                op.click(form.actions().getFirst(), invalid);
                 form = op.gameDialog();
-                check(body(form).contains("Podaj do 5 pełnych adresów"), "invalid URL stays in composer without delivering mail");
-                check(((net.minecraft.server.dialog.input.TextInput) form.common().inputs().getFirst().control()).initial().equals("Admin announcement"), "validation preserves message draft");
-                CompoundTag attachmentFields = fields("Admin announcement", "https://example.com/rules.pdf?token=a%2Fb\nhttp://example.org/image.png");
+                check(body(form).contains("Uzupełnij tytuł"), "missing English fallback stays in composer without delivering mail");
+                check(((net.minecraft.server.dialog.input.TextInput) form.common().inputs().get(1).control()).initial().equals("Admin announcement"), "validation preserves message draft");
+                CompoundTag attachmentFields = fields("Admin announcement https://example.com/rules.pdf?token=a%2Fb\nhttp://example.org/image.png", false);
+                attachmentFields.putString("body_en", "English announcement https://example.com/rules.pdf?token=a%2Fb\nhttp://example.org/image.png");
                 op.click(form.actions().getFirst(), attachmentFields); chat(op, "Wysłano maila. Liczba odbiorców:");
                 chat(en, "New messages in mailbox:");
                 inbox = open(pl, "mail read new");
-                check(inbox.actions().getFirst().button().label().getString().startsWith("[WAŻNE]"), "important broadcast bypasses ignore and is listed newest first");
+                check(inbox.actions().getFirst().button().label().getString().startsWith("⚠ " + opName + " - "), "important broadcast bypasses ignore and uses sender/subject label");
                 pl.click(inbox.actions().getFirst(), new CompoundTag()); message = pl.gameDialog();
                 check(body(message).contains("ADMINISTRACJA") && body(message).contains("Admin announcement"), "administration label and message are displayed");
-                check(message.actions().size() == 3 && message.common().afterAction() == DialogAction.NONE, "two URL buttons and Back keep the dialog interactive");
-                check(((ClickEvent.OpenUrl) ((StaticAction) message.actions().getFirst().action().orElseThrow()).value()).uri().toString()
-                        .equals("https://example.com/rules.pdf?token=a%2Fb"), "first attachment uses native open_url and preserves signed query");
-                check(((ClickEvent.OpenUrl) ((StaticAction) message.actions().get(1).action().orElseThrow()).value()).uri().toString()
-                        .equals("http://example.org/image.png"), "second attachment has its own native open_url action");
+                check(message.actions().size() == 1 && message.common().afterAction() == DialogAction.NONE, "inline links leave only the Back button");
+                var links = message.common().body().stream().map(p -> ((PlainMessage)p).contents()).flatMap(c -> c.getSiblings().stream())
+                        .filter(c -> c.getStyle().getClickEvent() instanceof ClickEvent.OpenUrl).toList();
+                check(links.size() == 2 && ((ClickEvent.OpenUrl)links.getFirst().getStyle().getClickEvent()).uri().toString()
+                        .equals("https://example.com/rules.pdf?token=a%2Fb"), "inline open_url preserves signed query");
+                var englishInbox = open(en, "mail read recive"); en.click(englishInbox.actions().getFirst(), new CompoundTag());
+                check(body(en.gameDialog()).contains("English announcement"), "English viewer sees the fallback body");
+                check(!body(open(en,"mail read send")).contains("Brak wiadomości"), "sent filter contains outgoing mail");
+                check(open(op,"mail read send").actions().getFirst().button().tooltip().orElseThrow().getString().contains(" - "), "sent labels show recipients and subject");
                 pl.click(message.actions().getLast(), new CompoundTag()); pl.gameDialog();
                 check(true, "Back still works on a message with native URL buttons");
                 form = open(op, "mail send-multiple " + plName + " " + enName + " " + plName);
                 op.click(form.actions().getFirst(), fields("Batch distinct", false)); chat(op, "Wysłano maila. Liczba odbiorców: 2.");
                 check(true, "send-multiple deduplicates and bypasses ignore for administration mail");
-                form = open(op, "mail send *"); command("deop " + opName);
+                form = open(op, "mail admin-send"); command("deop " + opName);
                 op.click(form.actions().getFirst(), fields("revoked", true)); chat(op, "Ta operacja wymaga OP");
                 check(true, "revoking OP invalidates an open administration composer");
                 command("op " + opName);
@@ -139,7 +145,9 @@ public final class MailIntegrationHarness {
         return fields(body, attach ? "https://example.com/attachment" : "");
     }
     private static CompoundTag fields(String body, String urls) {
-        CompoundTag data = new CompoundTag(); data.putString("body", body); data.putString("attachments", urls); return data;
+        CompoundTag data = new CompoundTag(); data.putString("title", body.length() > 60 ? body.substring(0,60) : body);
+        data.putString("body", body); data.putString("title_en", "English subject"); data.putString("body_en", "English " + body);
+        data.putString("attachments", urls); return data;
     }
     private static String body(MultiActionDialog dialog) {
         return dialog.common().body().stream().map(part -> ((PlainMessage) part).contents().getString()).reduce("", (a, b) -> a + "\n" + b);
@@ -160,7 +168,7 @@ public final class MailIntegrationHarness {
         long until = System.currentTimeMillis() + 800;
         try {
             while (System.currentTimeMillis() < until) {
-                try { check(!(bot.gamePacket() instanceof ClientboundShowDialogPacket), "unauthorized command does not open mail dialog"); }
+                try { if (bot.gamePacket() instanceof ClientboundShowDialogPacket) throw new AssertionError("Unauthorized mail dialog"); }
                 catch (SocketTimeoutException expected) { }
             }
         } finally { bot.socket.setSoTimeout(20000); }

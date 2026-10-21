@@ -1,4 +1,4 @@
-# BongoUtils 1.7.0
+# BongoUtils 1.8.0
 
 Serwerowy mod Fabric dla **Minecraft Java 26.3**: logowanie offline/MSA, skiny, whitelista IGN, poczta offline, ignorowanie i vanish, siadanie/leżenie, regulamin, AFK i statusy, wzmianki oraz panel działek GP3D. Gracze korzystają z klienta vanilla — bez dodatkowego moda i paczki zasobów.
 
@@ -8,7 +8,7 @@ Serwerowy mod Fabric dla **Minecraft Java 26.3**: logowanie offline/MSA, skiny, 
 - Opcjonalnie: **GriefPrevention3D 19.0.0** (uniwersalny JAR), [BongosTeleports 1.6.0](https://github.com/Silvobi/bongos-teleports) i [BongosCommunityClans 1.1.2](https://github.com/Silvobi/bongos-community-clans).
 
 1. Zatrzymaj serwer i wykonaj kopię świata oraz `config/bongoutils/`.
-2. Włóż `BongoUtils-1.7.0.jar` i Fabric API do `mods/`. Usuń poprzedni JAR BongoUtils; zachowaj konfigurację i dane.
+2. Włóż `BongoUtils-1.8.0.jar` i Fabric API do `mods/`. Usuń poprzedni JAR BongoUtils; zachowaj konfigurację i dane.
 3. W `server.properties` ustaw:
 
    ```properties
@@ -26,8 +26,8 @@ Mod wybiera weryfikację sesji Mojang lub szyfrowane logowanie offline według r
 | --- | --- |
 | `/mail` | Otwiera własne nieprzeczytane wiadomości |
 | `/mail send <nick>` | Mail do znanego gracza, także offline; natywny formularz |
-| `/mail read new\|all` | Własna skrzynka nieprzeczytanych lub wszystkich wiadomości |
-| `/mail send *` | Ważna poczta do znanych kont; gracz z OP 3+ |
+| `/mail read new\|all\|send\|recive` | Nowe, wszystkie (także wysłane), wysłane lub odebrane maile |
+| `/mail admin-send` | Ważna poczta do znanych kont, w wersji PL i EN; gracz z OP 3+ |
 | `/mail send-multiple <nick> <nick> ...` | Ważna poczta do wskazanych kont; gracz z OP 3+ |
 | `/sit`, `/lay` | Przełącza siadanie lub leżenie; ruch przerywa pozę |
 | `/wiki` | Dialog z linkiem do wiki serwera |

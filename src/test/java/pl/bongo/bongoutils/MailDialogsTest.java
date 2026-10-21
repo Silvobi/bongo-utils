@@ -25,35 +25,36 @@ class MailDialogsTest {
             assertEquals("/mail read new", ((ClickEvent.RunCommand) count.getStyle().getClickEvent()).command());
         }
     }
-    @Test void composeUsesMultilineTextAndOnlyOperatorsGetAttachmentInput() {
+    @Test void composeHasSubjectAndImportantMailHasBothLanguagesWithoutAttachmentFields() {
         for (String locale : List.of("pl_pl", "en_us")) {
-            var ordinary = (MultiActionDialog) MailDialogs.compose(locale, "token", "Player", false, "draft", "", "").value();
-            assertEquals(1, ordinary.common().inputs().size());
-            var text = (TextInput) ordinary.common().inputs().getFirst().control();
+            var draft = new MailUi.Draft("Subject", "draft", "English", "English body");
+            var ordinary = (MultiActionDialog) MailDialogs.compose(locale, "token", "Player", false, draft, "").value();
+            assertEquals(2, ordinary.common().inputs().size());
+            assertEquals("title", ordinary.common().inputs().getFirst().key());
+            var text = (TextInput) ordinary.common().inputs().get(1).control();
             assertTrue(text.multiline().isPresent()); assertEquals("draft", text.initial());
             assertEquals(MailStore.MAX_BODY, text.maxLength());
             assertEquals(Lang.text(locale, "mail_send"), ordinary.actions().getFirst().button().label().getString());
             assertEquals(Lang.text(locale, "cancel_button"), ordinary.exitAction().orElseThrow().button().label().getString());
-            var admin = (MultiActionDialog) MailDialogs.compose(locale, "token", "Player", true, "draft", "https://example.com/a", "").value();
-            assertEquals(2, admin.common().inputs().size());
-            assertEquals("attachments", admin.common().inputs().get(1).key());
-            assertEquals("https://example.com/a", ((TextInput) admin.common().inputs().get(1).control()).initial());
+            var admin = (MultiActionDialog) MailDialogs.compose(locale, "token", "Player", true, draft, "").value();
+            assertEquals(List.of("title", "body", "title_en", "body_en"), admin.common().inputs().stream().map(i -> i.key()).toList());
+            assertEquals("English body", ((TextInput) admin.common().inputs().get(3).control()).initial());
             var empty = (MultiActionDialog) MailDialogs.list(locale, "token", true, 0, 1, List.of()).value();
             assertFalse(empty.actions().isEmpty());
         }
     }
-    @Test void urlAttachmentsUseNativeOpenUrlActionsAndKeepTheMailboxInteractive() {
+    @Test void legacyUrlAttachmentsAreInlineAndKeepTheMailboxInteractive() {
         var mail = new MailStore.Message(UUID.randomUUID(), UUID.randomUUID(), "Admin", 1, "Announcement", true,
                 List.of("https://example.com/a?x=1&y=2", "http://example.org/b#file"), false);
         for (String locale : List.of("pl_pl", "en_us")) {
             var dialog = (MultiActionDialog) MailDialogs.message(locale, "token", mail, "date").value();
             assertEquals(DialogAction.NONE, dialog.common().afterAction());
-            assertEquals(3, dialog.actions().size());
+            assertEquals(1, dialog.actions().size());
             for (int i = 0; i < 2; i++) {
-                var button = dialog.actions().get(i);
-                assertEquals(mail.attachments().get(i), ((ClickEvent.OpenUrl) ((StaticAction) button.action().orElseThrow()).value()).uri().toString());
-                assertEquals(mail.attachments().get(i), button.button().tooltip().orElseThrow().getString());
-                assertEquals(Lang.text(locale, "mail_open_url", i + 1), button.button().label().getString());
+                var line = (net.minecraft.server.dialog.body.PlainMessage) dialog.common().body().get(i + 3);
+                assertEquals(mail.attachments().get(i), line.contents().getString());
+                var link = line.contents().getSiblings().stream().filter(c -> c.getStyle().getClickEvent() instanceof ClickEvent.OpenUrl).findFirst().orElseThrow();
+                assertEquals(mail.attachments().get(i), ((ClickEvent.OpenUrl) link.getStyle().getClickEvent()).uri().toString());
             }
         }
     }

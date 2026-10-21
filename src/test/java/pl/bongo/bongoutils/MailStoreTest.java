@@ -81,7 +81,7 @@ class MailStoreTest {
         MailStore upgraded = store();
         var mail = upgraded.inbox(target, false, (a, b) -> false).getFirst();
         assertEquals("original text", mail.body()); assertTrue(mail.read()); assertTrue(mail.important());
-        assertTrue(mail.attachments().isEmpty()); assertEquals(2, upgraded.snapshot().schemaVersion);
+        assertTrue(mail.attachments().isEmpty()); assertEquals(3, upgraded.snapshot().schemaVersion);
         upgraded.send(sender, "Sender", List.of(target), "new text", true, List.of("https://example.com/a"));
         assertEquals(2, store().inbox(target, false, (a, b) -> false).size());
         assertFalse(Files.readString(root.resolve("mail.json")).contains("item-json"));
