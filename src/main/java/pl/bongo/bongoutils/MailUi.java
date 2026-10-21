@@ -25,32 +25,39 @@ public final class MailUi {
         dispatcher.register(Commands.literal("mail")
                 .executes(c -> list(c.getSource().getPlayerOrException(), true, 0))
                 .then(Commands.literal("send")
-                        .then(Commands.literal("*").requires(ChangePassUi::allowed)
-                                .executes(c -> compose(c.getSource().getPlayerOrException(), "*", false)))
                         .then(Commands.argument("player", StringArgumentType.word())
-                                .suggests((c, b) -> SharedSuggestionProvider.suggest(names(c.getSource(), true), b))
-                                .executes(c -> compose(c.getSource().getPlayerOrException(), StringArgumentType.getString(c, "player"), false))))
+                                .suggests((c, b) -> SharedSuggestionProvider.suggest(names(c.getSource()), b))
+                                .executes(c -> sendOne(c.getSource().getPlayerOrException(), StringArgumentType.getString(c, "player")))))
+                .then(Commands.literal("admin-send").requires(ChangePassUi::allowed)
+                        .executes(c -> compose(c.getSource().getPlayerOrException(), "*", false)))
                 .then(Commands.literal("send-multiple").requires(ChangePassUi::allowed)
                         .then(Commands.argument("players", StringArgumentType.greedyString())
                                 .suggests((c, b) -> {
                                     String rest = b.getRemaining(); int last = rest.lastIndexOf(' ') + 1;
                                     Set<String> selected = new HashSet<>(Arrays.asList(rest.substring(0, last).toLowerCase(Locale.ROOT).split("\\s+")));
-                                    return SharedSuggestionProvider.suggest(names(c.getSource(), false).stream()
+                                    return SharedSuggestionProvider.suggest(names(c.getSource()).stream()
                                             .filter(n -> !selected.contains(n.toLowerCase(Locale.ROOT))), b.createOffset(b.getStart() + last));
                                 })
                                 .executes(c -> compose(c.getSource().getPlayerOrException(), StringArgumentType.getString(c, "players"), true))))
                 .then(Commands.literal("read")
+                        .executes(c -> list(c.getSource().getPlayerOrException(), MailStore.Folder.NEW, 0))
                         .then(Commands.literal("all").executes(c -> list(c.getSource().getPlayerOrException(), false, 0)))
+                        .then(Commands.literal("send").executes(c -> list(c.getSource().getPlayerOrException(), MailStore.Folder.SENT, 0)))
+                        .then(Commands.literal("recive").executes(c -> list(c.getSource().getPlayerOrException(), MailStore.Folder.RECEIVED, 0)))
+                        .then(Commands.literal("receive").executes(c -> list(c.getSource().getPlayerOrException(), MailStore.Folder.RECEIVED, 0)))
                         .then(Commands.literal("new").executes(c -> list(c.getSource().getPlayerOrException(), true, 0)))));
     }
-    private static List<String> names(CommandSourceStack source, boolean wildcard) {
+    private int sendOne(ServerPlayer player, String name) throws CommandSyntaxException {
+        if (name.equals("*")) throw error(player, "mail_admin_command");
+        return compose(player, name, false);
+    }
+    private static List<String> names(CommandSourceStack source) {
         List<String> result = new ArrayList<>();
         UUID viewer = source.getPlayer() == null ? null : source.getPlayer().getUUID();
         Social.state.snapshot().names.forEach((id, name) -> {
             if (!Social.hidden(id) && (viewer == null || !Social.blocked(viewer, id))) result.add(name);
         });
         result.sort(String.CASE_INSENSITIVE_ORDER);
-        if (wildcard && ChangePassUi.allowed(source)) result.add("*");
         return result;
     }
     static boolean deliverable(UUID sender, UUID recipient, boolean important) {
@@ -75,28 +82,35 @@ public final class MailUi {
         if (recipients.isEmpty()) throw error(player, "mail_empty_recipients");
         Session session = new Session(player, Stage.COMPOSE, List.copyOf(recipients), important,
                 broadcast ? Lang.text(player, "mail_everyone") : (important ? Lang.text(player, "mail_admin_recipients") : "")
-                        + String.join(", ", recipients.stream().map(Social.state::name).toList()), false, 0, List.of(), null);
-        compose(player, session, "", "", ""); return 1;
+                        + String.join(", ", recipients.stream().map(Social.state::name).toList()), MailStore.Folder.NEW, 0, List.of(), null);
+        compose(player, session, new Draft("", "", "", ""), ""); return 1;
     }
-    private void compose(ServerPlayer player, Session previous, String initial, String urls, String error) {
+    public record Draft(String title, String body, String englishTitle, String englishBody) {}
+    private void compose(ServerPlayer player, Session previous, Draft draft, String error) {
         Session next = previous.renew(Stage.COMPOSE, previous.page, List.of(), null);
         sessions.put(player.getUUID(), next);
         player.openDialog(MailDialogs.compose(Lang.locale(player), next.token, next.recipientLabel,
-                ChangePassUi.allowed(player.createCommandSourceStack()), initial, urls, error));
+                next.important, draft, error));
     }
     public int list(ServerPlayer player, boolean unreadOnly, int requestedPage) {
-        List<MailStore.Message> inbox = store.inbox(player.getUUID(), unreadOnly, Social::blocked);
+        return list(player, unreadOnly ? MailStore.Folder.NEW : MailStore.Folder.ALL, requestedPage);
+    }
+    public int list(ServerPlayer player, MailStore.Folder folder, int requestedPage) {
+        List<MailStore.Message> inbox = store.list(player.getUUID(), folder, Social::blocked);
         int pages = Math.max(1, (inbox.size() + PAGE_SIZE - 1) / PAGE_SIZE);
         int page = Math.clamp(requestedPage, 0, pages - 1);
         List<MailStore.Message> entries = inbox.subList(Math.min(page * PAGE_SIZE, inbox.size()), Math.min((page + 1) * PAGE_SIZE, inbox.size()));
-        Session next = new Session(player, Stage.LIST, List.of(), false, "", unreadOnly, page,
+        Session next = new Session(player, Stage.LIST, List.of(), false, "", folder, page,
                 entries.stream().map(MailStore.Message::id).toList(), null);
         sessions.put(player.getUUID(), next);
-        List<String> labels = entries.stream().map(m -> (m.important() ? Lang.text(player, "mail_important") : "")
-                + (m.read() ? "" : Lang.text(player, "mail_unread")) + m.senderName() + " · " + DATE.format(Instant.ofEpochMilli(m.sentAt()))
-                + " · " + preview(m.body(), 45)).toList();
-        player.openDialog(MailDialogs.list(Lang.locale(player), next.token, unreadOnly, page, pages, labels));
+        List<String> labels = entries.stream().map(m -> label(m, player.getUUID(), Lang.locale(player), Social.state::name)).toList();
+        player.openDialog(MailDialogs.list(Lang.locale(player), next.token, folder, page, pages, labels));
         return 1;
+    }
+    static String label(MailStore.Message message, UUID viewer, String locale, java.util.function.Function<UUID,String> name) {
+        String person = message.sender().equals(viewer) && !message.recipients().isEmpty()
+                ? String.join(", ", message.recipients().stream().map(name).toList()) : message.senderName();
+        return (message.important() ? "⚠ " : "") + person + " - " + message.title(locale);
     }
     public static Component notification(String locale, int count) {
         return Component.literal(Lang.text(locale, "mail_notification")).withStyle(ChatFormatting.GOLD)
@@ -119,29 +133,28 @@ public final class MailUi {
             switch (session.stage) {
                 case COMPOSE -> {
                     if (!action[0].equals("mail_send") || !(packet.payload().orElse(null) instanceof CompoundTag data)) return;
-                    String body = data.getString("body").orElse("").strip();
-                    String urls = data.getString("attachments").orElse("");
-                    if (body.isBlank() || body.length() > MailStore.MAX_BODY) {
-                        compose(player, session, body.length() <= MailStore.MAX_BODY ? body : "",
-                                urls.length() <= MailAttachments.MAX_INPUT ? urls : "", Lang.text(player, "mail_body_invalid")); return;
-                    }
-                    if ((session.important || !urls.isBlank()) && !ChangePassUi.allowed(player.createCommandSourceStack())) {
+                    Draft draft = new Draft(data.getString("title").orElse("").strip(), data.getString("body").orElse("").strip(),
+                            data.getString("title_en").orElse("").strip(), data.getString("body_en").orElse("").strip());
+                    if (session.important && !ChangePassUi.allowed(player.createCommandSourceStack())
+                            || !data.getString("attachments").orElse("").isBlank()) {
                         close(player); say(player, "mail_op_only"); return;
                     }
-                    List<String> attachments;
-                    try { attachments = MailAttachments.parse(urls); }
+                    try {
+                        MailStore.validateText(draft.title, draft.body);
+                        if (session.important) MailStore.validateText(draft.englishTitle, draft.englishBody);
+                    }
                     catch (IllegalArgumentException e) {
-                        compose(player, session, body, urls.length() <= MailAttachments.MAX_INPUT ? urls : "",
-                                Lang.text(player, "mail_urls_invalid")); return;
+                        compose(player, session, sanitized(draft), Lang.text(player, "mail_text_invalid")); return;
                     }
                     // Recheck privacy after composing: ignore or vanish may have changed while the dialog was open.
                     if (session.recipients.stream().anyMatch(id -> !deliverable(player.getUUID(), id, session.important))) {
                         close(player); say(player, "mail_unknown"); return;
                     }
                     if (!ChangePassUi.allowed(player.createCommandSourceStack()) && !BongoUtils.limits.allow("mail:" + player.getUUID(), 5, 60_000)) {
-                        compose(player, session, body, urls, Lang.text(player, "mail_rate_limit")); return;
+                        compose(player, session, draft, Lang.text(player, "mail_rate_limit")); return;
                     }
-                    store.send(player.getUUID(), player.getGameProfile().name(), session.recipients, body, session.important, attachments);
+                    store.send(player.getUUID(), player.getGameProfile().name(), session.recipients, draft.title, draft.body,
+                            draft.englishTitle, draft.englishBody, session.important);
                     close(player); say(player, "mail_sent", session.recipients.size());
                     var server = Objects.requireNonNull(player.level().getServer());
                     for (UUID id : session.recipients) {
@@ -150,8 +163,8 @@ public final class MailUi {
                     }
                 }
                 case LIST -> {
-                    if (action[0].equals("mail_previous") && session.page > 0) list(player, session.unreadOnly, session.page - 1);
-                    else if (action[0].equals("mail_next")) list(player, session.unreadOnly, session.page + 1);
+                    if (action[0].equals("mail_previous") && session.page > 0) list(player, session.folder, session.page - 1);
+                    else if (action[0].equals("mail_next")) list(player, session.folder, session.page + 1);
                     else if (action[0].startsWith("mail_open_")) {
                         int index;
                         try { index = Integer.parseInt(action[0].substring("mail_open_".length())); } catch (NumberFormatException e) { return; }
@@ -159,7 +172,7 @@ public final class MailUi {
                     }
                 }
                 case MESSAGE -> {
-                    if (action[0].equals("mail_back")) list(player, session.unreadOnly, session.page);
+                    if (action[0].equals("mail_back")) list(player, session.folder, session.page);
                 }
             }
         } catch (IOException | RuntimeException e) {
@@ -167,21 +180,22 @@ public final class MailUi {
             close(player); say(player, "mail_storage_error");
         }
     }
-    private MailStore.Message visible(ServerPlayer player, UUID id) {
-        MailStore.Message message = store.find(player.getUUID(), id);
-        return message != null && MailStore.visible(player.getUUID(), message, Social::blocked) ? message : null;
-    }
     private void open(ServerPlayer player, Session previous, UUID id) throws IOException {
-        if (visible(player, id) == null) { list(player, previous.unreadOnly, previous.page); return; }
-        MailStore.Message message = store.read(player.getUUID(), id);
+        MailStore.Message message = store.list(player.getUUID(), previous.folder, Social::blocked).stream().filter(m -> m.id().equals(id)).findFirst().orElse(null);
+        if (message == null) { list(player, previous.folder, previous.page); return; }
+        boolean outgoing = message.sender().equals(player.getUUID()) && !message.recipients().isEmpty();
+        if (!outgoing || previous.folder == MailStore.Folder.NEW || previous.folder == MailStore.Folder.RECEIVED)
+            message = store.read(player.getUUID(), id);
         Session next = previous.renew(Stage.MESSAGE, previous.page, List.of(), id);
         sessions.put(player.getUUID(), next);
         player.openDialog(MailDialogs.message(Lang.locale(player), next.token, message,
                 DATE.format(Instant.ofEpochMilli(message.sentAt()))));
     }
-    private static String preview(String value, int max) {
-        String line = value.replaceAll("\\s+", " "); return line.length() > max ? line.substring(0, max) + "…" : line;
+    private static Draft sanitized(Draft draft) {
+        return new Draft(limit(draft.title, MailStore.MAX_TITLE), limit(draft.body, MailStore.MAX_BODY),
+                limit(draft.englishTitle, MailStore.MAX_TITLE), limit(draft.englishBody, MailStore.MAX_BODY));
     }
+    private static String limit(String text, int max) { return text.length() <= max ? text : text.substring(0,max); }
     private static CommandSyntaxException error(ServerPlayer player, String key) {
         return new SimpleCommandExceptionType(Component.literal(Lang.text(player, key))).create();
     }
@@ -195,18 +209,19 @@ public final class MailUi {
         final long expires = System.nanoTime() + 300_000_000_000L;
         final Stage stage;
         final List<UUID> recipients, entries;
-        final boolean important, unreadOnly;
+        final boolean important;
+        final MailStore.Folder folder;
         final String recipientLabel;
         final int page;
         final UUID message;
         Session(ServerPlayer owner, Stage stage, List<UUID> recipients, boolean important,
-                String recipientLabel, boolean unreadOnly, int page, List<UUID> entries, UUID message) {
+                String recipientLabel, MailStore.Folder folder, int page, List<UUID> entries, UUID message) {
             this.owner = owner; this.stage = stage; this.recipients = recipients; this.important = important;
             this.recipientLabel = recipientLabel;
-            this.unreadOnly = unreadOnly; this.page = page; this.entries = entries; this.message = message;
+            this.folder = folder; this.page = page; this.entries = entries; this.message = message;
         }
         Session renew(Stage next, int page, List<UUID> entries, UUID message) {
-            return new Session(owner, next, recipients, important, recipientLabel, unreadOnly, page, entries, message);
+            return new Session(owner, next, recipients, important, recipientLabel, folder, page, entries, message);
         }
     }
 }

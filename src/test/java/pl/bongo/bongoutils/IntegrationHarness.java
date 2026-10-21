@@ -102,6 +102,7 @@ public final class IntegrationHarness {
             while (true) {
                 Packet<?> packet = read();
                 if (packet instanceof ClientboundSelectKnownPacks packs) send(new ServerboundSelectKnownPacks(packs.knownPacks()));
+                else if (packet instanceof ClientboundResourcePackPushPacket pack) send(new ServerboundResourcePackPacket(pack.id(), ServerboundResourcePackPacket.Action.DECLINED));
                 else if (packet instanceof ClientboundPingPacket ping) send(new ServerboundPongPacket(ping.getId()));
                 else if (packet instanceof ClientboundKeepAlivePacket alive) send(new ServerboundKeepAlivePacket(alive.getId()));
                 else if (packet instanceof ClientboundShowDialogPacket dialog) return (MultiActionDialog) dialog.dialog().value();
@@ -119,6 +120,7 @@ public final class IntegrationHarness {
             while (true) {
                 Packet<?> packet = read();
                 if (packet instanceof ClientboundKeepAlivePacket alive) send(new ServerboundKeepAlivePacket(alive.getId()));
+                else if (packet instanceof ClientboundResourcePackPushPacket pack) send(new ServerboundResourcePackPacket(pack.id(), ServerboundResourcePackPacket.Action.DECLINED));
                 else if (packet instanceof ClientboundFinishConfigurationPacket) {
                     send(ServerboundFinishConfigurationPacket.INSTANCE);
                     byte[] worldPacket = frame(); check(worldPacket.length > 0, "authenticated player receives world packets"); return;
@@ -216,6 +218,8 @@ public final class IntegrationHarness {
                     if (type == GamePacketTypes.CLIENTBOUND_PLAYER_INFO_UPDATE) return ClientboundPlayerInfoUpdatePacket.STREAM_CODEC.decode(new RegistryFriendlyByteBuf(buffer, RegistryAccess.EMPTY));
                     if (type == GamePacketTypes.CLIENTBOUND_SYSTEM_CHAT) return ClientboundSystemChatPacket.STREAM_CODEC.decode(new RegistryFriendlyByteBuf(buffer, RegistryAccess.EMPTY));
                     if (type == GamePacketTypes.CLIENTBOUND_START_CONFIGURATION) return ClientboundStartConfigurationPacket.INSTANCE;
+                    // Let deadline-based callers regain control even while chunks/entity packets keep arriving.
+                    return null;
                 } finally { buffer.release(); }
             }
         }

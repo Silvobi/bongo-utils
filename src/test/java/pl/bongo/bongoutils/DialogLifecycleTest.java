@@ -28,7 +28,7 @@ class DialogLifecycleTest {
             for (var holder : List.of(Dialogs.skinMenu(locale,"token"), Dialogs.skinForm(locale,false,"token",""),
                     Dialogs.skinForm(locale,true,"token",""), Dialogs.changePassNick(locale,"token",""),
                     Dialogs.changePassEdit(locale,"token","Player",""), Dialogs.changePassClear(locale,"token","Player"),
-                    MailDialogs.compose(locale,"token","Player",false,"","",""),
+                    MailDialogs.compose(locale,"token","Player",false,new MailUi.Draft("","","",""),""),
                     MailDialogs.list(locale,"token",true,0,1,List.of()), WikiCommand.dialog(locale))) {
                 assertEquals(DialogAction.CLOSE, holder.value().common().afterAction(), holder.value().common().title().getString());
             }
@@ -49,8 +49,11 @@ class DialogLifecycleTest {
                 assertNotNull(dispatcher.getRoot().getChild(command),command);
             for (String sub : List.of("reload","resetpassword","migrate","visibility"))
                 assertNotNull(dispatcher.getRoot().getChild("bongoutils").getChild(sub),sub);
-            for (String sub : List.of("send","send-multiple","read"))
+            for (String sub : List.of("send","send-multiple","admin-send","read"))
                 assertNotNull(dispatcher.getRoot().getChild("mail").getChild(sub),sub);
+            for (String sub : List.of("new","all","send","recive","receive"))
+                assertNotNull(dispatcher.getRoot().getChild("mail").getChild("read").getChild(sub),sub);
+            assertNull(dispatcher.getRoot().getChild("mail").getChild("send").getChild("*"));
             assertNotNull(dispatcher.getRoot().getChild("mail").getCommand());
         } finally { BongoUtils.mailUi = previous; }
     }
