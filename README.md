@@ -3,15 +3,13 @@
 
 ## Autorstwo AI / AI disclosure
 
-Kod tego moda został napisany przez AI — OpenAI Codex — na podstawie wymagań i wskazówek Bongo.
-
-This mod's code was written by AI — OpenAI Codex — based on Bongo's requirements and guidance.
+Kod tego moda został napisany przez AI — na podstawie wymagań i wskazówek Bongo.
 
 BongoUtils to Minecraft Fabric mod typu server-side - instalacja po stronie klienta nie jest wymagana.
 
 ## Instalacja
 
-1. Zatrzymaj serwer i wykonaj kopię świata oraz danych graczy.
+1. Przed instalacją, zalecane jest stworzenie kopii zapasowej.
 2. Umieść `BongoUtils-1.3.0.jar` i `fabric-api-0.161.0+26.3.jar` w katalogu `mods/` serwera Fabric 26.3. Przy aktualizacji usuń stary JAR BongoUtils; nie zostawiaj dwóch wersji moda. Zachowaj katalog `config/bongoutils/`.
 3. W `server.properties` ustaw:
 
